@@ -20,27 +20,33 @@ How it works
   lengths are Tommy's. The heads reuse Tommy's face builders (eyes, lids,
   open mouth, brows, nose, ears), scaled by the head size.
 
-Characters (heights to the top of hair/hat; materials = palette roles)
-  npc_nat     Doctora Nat     ~1.53 m  curly ponytail, round glasses, lab coat
-  npc_juampi  Tio Juampi      ~1.60 m  backwards cap, beard, overalls, tool belt
-  npc_juan    Abuelo Juan     ~1.45 m  flat cap, moustache, cardigan, stooped
-  npc_kid_a   visiting kid    ~1.00 m  pigtails, yellow raincoat, rain boots
-  npc_kid_b   visiting kid    ~1.00 m  glasses, dino hoodie (hood up, spikes)
-  npc_kid_c   visiting kid    ~1.00 m  sun hat, overalls, bob
-  The kids use Tommy's exact proportions (and so his exact animations).
-  Abuelo Juan has no cane: it would be in his hand in every shared
-  animation (run, dig, carry...).
+Characters (rest height to the top of hair/hat; materials = palette roles)
+  npc_nat     Doctora Nat     1.52 m  curly ponytail, round glasses, lab coat   8976 tris, 13 mats
+  npc_juampi  Tio Juampi      1.61 m  backwards cap, beard, overalls, tools     8988 tris, 14 mats
+  npc_juan    Abuelo Juan     1.44 m  flat cap, moustache, cardigan, stooped    8786 tris, 13 mats
+  npc_kid_a   visiting kid    0.99 m  pigtails, yellow raincoat, rain boots     7922 tris, 11 mats
+  npc_kid_b   visiting kid    1.05 m  glasses, dino hoodie (hood up, spikes)    7990 tris, 13 mats
+  npc_kid_c   visiting kid    1.00 m  sun hat, overalls, bob                    7678 tris, 13 mats
+  The kids use Tommy's exact proportions (and so his exact animation data,
+  except sit/sleep heights, settled on their clothes). Abuelo Juan has no
+  cane: it would be in his hand in every shared animation (run, dig...).
+  Coats (Nat, kid A) are skinned partly to the thighs below the hips so the
+  skirt follows the legs in walk/run/sit.
 
 Animations (30 fps, root in place): Tommy's 17 (idle, walk, run, pickup,
 carry_idle, carry_walk, pet, pet_low, give, use, dig, happy, wave, yawn,
 sleep, sit, talk) with the same names and lengths, plus
-  point      1.2 s   points forward with the right arm while talking
-  think      1.6 s   hand on chin, other arm across the belly, "hmm"
-Walk / run speeds the feet are planted for (the game should move the node
-at these):
-  kids        walk 1.6 m/s (0.5 s cycle), run 3.5 m/s (0.4 s)  = Tommy
-  nat, juampi walk 1.6 m/s (0.66 s cycle), run 3.5 m/s (0.5 s)
-  juan        walk 1.1 m/s (0.8 s cycle),  run 2.2 m/s (0.6 s)  (a jog)
+  point      1.2 s   points forward with the right arm while talking, fist on hip
+  think      1.6 s   hand on chin, other arm across the belly, "hmm", then "aha"
+Walk / run: every NPC is animated for Tommy's speeds and cycle lengths,
+walk 1.6 m/s (0.5 s cycle), run 3.5 m/s (0.4 s cycle), so the game's
+`rig.loop("walk", speed / 1.6)` keeps the feet planted at any speed. The
+grown-ups take longer, calmer steps in the same cycle (stance 42 %), Juan
+shuffles (low foot lift, more lean).
+
+Export: the actions are rewritten as quaternion keys before export
+(tommy.quaternion_actions): Blender 3.3's exporter with the size
+optimisation otherwise drops constant rotation channels (held poses).
 """
 import math
 import os
@@ -1089,18 +1095,18 @@ def nat_build(arm):
     # lab coat with a V neck showing the teal top
     mb = MB()
     prof = prof_tz(b, NAT_COAT)
-    tzs = [0.232, 0.242, 0.262, 0.29, 0.33, 0.37, 0.40, 0.43, 0.46, 0.49, 0.505, 0.52, 0.535, 0.547]
+    tzs = [0.246, 0.255, 0.270, 0.29, 0.33, 0.37, 0.40, 0.43, 0.46, 0.49, 0.505, 0.52, 0.535, 0.547]
     zv0, zv1 = b.tz(0.405), b.tz(0.552)
 
     zs0, zs1 = b.tz(0.232), b.tz(0.282)
 
     def vkey(i, k, c):
         return 'coat'
-    torso_loft(mb, prof, [b.tz(z) for z in tzs], vkey, n=28, cap0=V(0, 0, b.tz(0.225)),
+    torso_loft(mb, prof, [b.tz(z) for z in tzs], vkey, n=28, cap0=V(0, 0, b.tz(0.240)),
                cap1=V(0, 0, b.tz(0.562)), cap_keys=('coat', 'coat'))
     bvh = bvh_of(mb)
     coat = T.to_object('n_coat', mb)
-    skin_skirt(coat, arm, b.root, b.tz(0.225), kmax=0.45)
+    skin_skirt(coat, arm, b.root, b.tz(0.246), kmax=0.75)
     parts.append(coat)
     mb = MB()
     vpatch(mb, bvh, b.tz(0.546), zv0 - 0.01, 0.074 * b.kW, 0.003, 'shirt')
@@ -1109,7 +1115,7 @@ def nat_build(arm):
         button(mb, bvh, 0.0, b.tz(z), 0.011, 'emblem', off=0.004)
     for s in (-1, 1):   # hip pockets
         def pk(a, c, s=s):
-            return (s * lerp(0.050, 0.125, a) * b.kW, lerp(b.tz(0.315), b.tz(0.255), c))
+            return (s * lerp(0.050, 0.125, a) * b.kW, lerp(b.tz(0.325), b.tz(0.270), c))
         patch(mb, bvh, pk, 4, 3, 0.005, 'coat')
     # breast pocket (her left) + a pen
     def bp(a, c):
@@ -1119,14 +1125,14 @@ def nat_build(arm):
     if hit:
         T.tube(mb, [hit + V(0, -0.006, -0.03), hit + V(0, -0.006, 0.035)], [0.0075, 0.0075], 'shirt', n=6)
     o = T.to_object('n_coat_bits', mb, recalc=False, out_from=V(0, 0, b.tz(0.38)))
-    skin_skirt(o, arm, b.root, b.tz(0.225), kmax=0.45)
+    skin_skirt(o, arm, b.root, b.tz(0.246), kmax=0.75)
     parts.append(o)
     pelvis(b, parts, 'pants', wk=0.95, fk=0.95, bk=1.0)
-    legs(b, parts, arm, 'pants', r=0.95, shorts=0.90, skin_r=0.80, cuff_key='pants')
+    legs(b, parts, arm, 'pants', r=0.86, shorts=0.90, skin_r=0.88, cuff_key='pants')
     # cargo pockets on the outside of the shorts
     for s, sd in ((1, 'L'), (-1, 'R')):
         hip, kn = side_pt(T.HIP, s), side_pt(T.KNEE, s)
-        c = hip + (kn - hip) * 0.68 + V(s * 0.068 * b.kR, 0, 0)
+        c = hip + (kn - hip) * 0.74 + V(s * 0.062 * b.kR, 0, 0)
         mb = MB()
         T.ellipsoid(mb, c, (0.018, 0.045, 0.050), 'pants', n=7, rings=4)
         T.ellipsoid(mb, c + V(s * 0.006, 0, 0.040), (0.016, 0.048, 0.016), 'pants', n=7, rings=3)
