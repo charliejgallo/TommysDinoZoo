@@ -1,0 +1,480 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Language: en\n"
+"X-Language-Name: English\n"
+
+msgid "pack.base"
+msgstr "Base farm"
+
+msgid "hud.day"
+msgstr "Day"
+
+msgid "verb.pet"
+msgstr "Pet"
+
+msgid "verb.feed"
+msgstr "Feed"
+
+msgid "verb.offer"
+msgstr "Offer"
+
+msgid "verb.brush"
+msgstr "Brush"
+
+msgid "verb.play"
+msgstr "Play"
+
+msgid "verb.photo"
+msgstr "Take photo"
+
+msgid "verb.pickup"
+msgstr "Pick up"
+
+msgid "verb.scoop"
+msgstr "Scoop poop"
+
+msgid "verb.need_shovel"
+msgstr "You need the shovel"
+
+msgid "verb.hands_full"
+msgstr "Hands full"
+
+msgid "verb.fill"
+msgstr "Fill"
+
+msgid "verb.incubate"
+msgstr "Place the egg"
+
+msgid "verb.look_egg"
+msgstr "Look at the egg"
+
+msgid "verb.harvest"
+msgstr "Harvest"
+
+msgid "verb.shake"
+msgstr "Shake"
+
+msgid "verb.plant"
+msgstr "Plant"
+
+msgid "verb.water"
+msgstr "Water"
+
+msgid "verb.missions"
+msgstr "Missions"
+
+msgid "verb.sleep"
+msgstr "Go to bed"
+
+msgid "verb.shop"
+msgstr "Shop"
+
+msgid "verb.place"
+msgstr "Place"
+
+msgid "verb.throw"
+msgstr "Throw"
+
+msgid "toast.heart_up"
+msgstr "%s loves you more!"
+
+msgid "toast.egg_in"
+msgstr "The egg is cosy! It hatches tomorrow."
+
+msgid "toast.egg_wait"
+msgstr "Still asleep... it hatches tomorrow."
+
+msgid "toast.hands_full"
+msgstr "Your hands are full!"
+
+msgid "toast.no_room"
+msgstr "No room here"
+
+msgid "toast.dusk"
+msgstr "It's getting dark..."
+
+msgid "toast.soon"
+msgstr "Coming soon!"
+
+msgid "toast.too_early"
+msgstr "It's still daytime! Lots to do."
+
+msgid "fx.nope"
+msgstr "mmm, no"
+
+msgid "summary.title"
+msgstr "End of day %d"
+
+msgid "summary.happy"
+msgstr "Happy dinos: %d of %d"
+
+msgid "summary.coins"
+msgstr "Coins earned: %d"
+
+msgid "summary.grew"
+msgstr "%s grew! Now a %s"
+
+msgid "summary.hatched"
+msgstr "A baby %s hatched! Its name is %s"
+
+msgid "summary.pets"
+msgstr "%s got %d cuddles"
+
+msgid "summary.bye"
+msgstr "See you tomorrow!"
+
+msgid "summary.continue"
+msgstr "Press %s to continue"
+
+msgid "age.baby"
+msgstr "baby"
+
+msgid "age.juv"
+msgstr "youngster"
+
+msgid "age.adult"
+msgstr "grown-up"
+
+msgid "names.suggest"
+msgstr "Trixie,Coco,Pip,Luna,Rocco,Mimi,Bongo,Kiwi,Toby,Cloud,Pancho,Lola,Sparky,Berry"
+
+msgid "dino.trike"
+msgstr "Triceratops"
+
+msgid "dino.stego"
+msgstr "Stegosaurus"
+
+msgid "dino.ankylo"
+msgstr "Ankylosaurus"
+
+msgid "dino.brachio"
+msgstr "Brachiosaurus"
+
+msgid "dino.parasaur"
+msgstr "Parasaurolophus"
+
+msgid "dino.pachy"
+msgstr "Pachycephalosaurus"
+
+msgid "dino.iguanodon"
+msgstr "Iguanodon"
+
+msgid "dino.proto"
+msgstr "Protoceratops"
+
+msgid "dino.galli"
+msgstr "Gallimimus"
+
+msgid "dino.therizino"
+msgstr "Therizinosaurus"
+
+msgid "dino.trex"
+msgstr "Tyrannosaurus Rex"
+
+msgid "dino.raptor"
+msgstr "Velociraptor"
+
+msgid "dino.spino"
+msgstr "Spinosaurus"
+
+msgid "dino.dilo"
+msgstr "Dilophosaurus"
+
+msgid "dino.carno"
+msgstr "Carnotaurus"
+
+msgid "dino.compy"
+msgstr "Compsognathus"
+
+msgid "dino.microraptor"
+msgstr "Microraptor"
+
+msgid "dino.ptera"
+msgstr "Pteranodon"
+
+msgid "dino.archaeo"
+msgstr "Archaeopteryx"
+
+msgid "dino.plesio"
+msgstr "Plesiosaurus"
+
+msgid "item.fern"
+msgstr "Fern"
+
+msgid "item.leaves"
+msgstr "Leaves"
+
+msgid "item.berries"
+msgstr "Berries"
+
+msgid "item.apple"
+msgstr "Apple"
+
+msgid "item.pumpkin"
+msgstr "Pumpkin"
+
+msgid "item.roots"
+msgstr "Carrots"
+
+msgid "item.seeds_bag"
+msgstr "Seeds"
+
+msgid "item.water_plants"
+msgstr "Water plants"
+
+msgid "item.bugs"
+msgstr "Bugs"
+
+msgid "item.fish"
+msgstr "Fish"
+
+msgid "item.kibble"
+msgstr "Kibble"
+
+msgid "item.watering_can"
+msgstr "Watering can"
+
+msgid "item.brush"
+msgstr "Brush"
+
+msgid "item.shovel"
+msgstr "Shovel"
+
+msgid "item.ball"
+msgstr "Ball"
+
+msgid "item.camera"
+msgstr "Camera"
+
+msgid "item.rod"
+msgstr "Fishing rod"
+
+msgid "item.seed_fern"
+msgstr "Fern seeds"
+
+msgid "item.seed_berry"
+msgstr "Berry seeds"
+
+msgid "item.seed_pumpkin"
+msgstr "Pumpkin seeds"
+
+msgid "item.seed_carrot"
+msgstr "Carrot seeds"
+
+msgid "item.poop"
+msgstr "Dino poop"
+
+msgid "habitat.meadow"
+msgstr "Meadow"
+
+msgid "habitat.forest"
+msgstr "Tall forest"
+
+msgid "habitat.lagoon"
+msgstr "Lagoon"
+
+msgid "habitat.canyon"
+msgstr "Canyon"
+
+msgid "habitat.cliff"
+msgstr "Cliff"
+
+msgid "habitat.rexvalley"
+msgstr "Rex Valley"
+
+msgid "menu.play"
+msgstr "Play"
+
+msgid "menu.settings"
+msgstr "Settings"
+
+msgid "menu.quit"
+msgstr "Quit"
+
+msgid "menu.choose_farm"
+msgstr "Choose your farm"
+
+msgid "menu.new_farm"
+msgstr "New farm"
+
+msgid "menu.slot_info"
+msgstr "Day %d · %d dinos · %d coins"
+
+msgid "menu.pause"
+msgstr "Paused"
+
+msgid "menu.resume"
+msgstr "Keep playing"
+
+msgid "menu.save_quit"
+msgstr "Save and quit"
+
+msgid "menu.back"
+msgstr "Back"
+
+msgid "set.day_length"
+msgstr "Day length"
+
+msgid "set.minutes"
+msgstr "%d min"
+
+msgid "set.language"
+msgstr "Language"
+
+msgid "set.music"
+msgstr "Music"
+
+msgid "set.sfx"
+msgstr "Sounds"
+
+msgid "set.guide"
+msgstr "Guide arrow"
+
+msgid "set.fullscreen"
+msgstr "Full screen"
+
+msgid "set.on"
+msgstr "On"
+
+msgid "set.off"
+msgstr "Off"
+
+msgid "set.parents"
+msgstr "For parents: played %d min today"
+
+msgid "menu.missions"
+msgstr "Today's missions"
+
+msgid "menu.shop"
+msgstr "Shop"
+
+msgid "toast.mission_done"
+msgstr "Mission complete! +%d coins"
+
+msgid "toast.no_coins"
+msgstr "Not enough coins"
+
+msgid "toast.on_ground"
+msgstr "It's on the ground next to you"
+
+msgid "shop.food"
+msgstr "Food"
+
+msgid "shop.seeds"
+msgstr "Seeds"
+
+msgid "shop.tools"
+msgstr "Tools"
+
+msgid "shop.eggs"
+msgstr "Eggs"
+
+msgid "shop.furniture"
+msgstr "Things"
+
+msgid "shop.coins"
+msgstr "You have %d coins"
+
+msgid "shop.egg"
+msgstr "%s egg"
+
+msgid "shop.empty"
+msgstr "Nothing here yet"
+
+msgid "mission.pet"
+msgstr "Pet dinos %d times"
+
+msgid "mission.feed"
+msgstr "Hand-feed dinos %d times"
+
+msgid "mission.scoop"
+msgstr "Scoop %d poops"
+
+msgid "mission.brush"
+msgstr "Brush dinos %d times"
+
+msgid "mission.harvest"
+msgstr "Harvest %d times"
+
+msgid "mission.plant"
+msgstr "Plant %d seeds"
+
+msgid "mission.fill"
+msgstr "Fill the trough %d times"
+
+msgid "mission.play"
+msgstr "Play ball %d times"
+
+msgid "mission.feed_dino"
+msgstr "Feed a %2$s %1$d times"
+
+msgid "mission.pet_dino"
+msgstr "Pet a %2$s %1$d times"
+
+msgid "prop.fence"
+msgstr "Fence"
+
+msgid "prop.gate"
+msgstr "Gate"
+
+msgid "prop.tree_round"
+msgstr "Tree"
+
+msgid "prop.tree_fruit"
+msgstr "Apple tree"
+
+msgid "prop.palm"
+msgstr "Palm tree"
+
+msgid "prop.fern_clump"
+msgstr "Ferns"
+
+msgid "prop.bush"
+msgstr "Bush"
+
+msgid "prop.berry_bush"
+msgstr "Berry bush"
+
+msgid "prop.flowers"
+msgstr "Flowers"
+
+msgid "prop.rock"
+msgstr "Rock"
+
+msgid "prop.trough"
+msgstr "Feeding trough"
+
+msgid "prop.water_trough"
+msgstr "Water trough"
+
+msgid "prop.hay"
+msgstr "Hay bale"
+
+msgid "prop.nest"
+msgstr "Nest"
+
+msgid "prop.incubator"
+msgstr "Incubator"
+
+msgid "prop.board"
+msgstr "Board"
+
+msgid "prop.mailbox"
+msgstr "Mailbox"
+
+msgid "prop.lamp"
+msgstr "Lamp"
+
+msgid "prop.bench"
+msgstr "Bench"
+
+msgid "prop.garden_plot"
+msgstr "Garden bed"
+
+msgid "prop.sign"
+msgstr "Sign"
+
+msgid "prop.house"
+msgstr "House"
+
