@@ -820,3 +820,18 @@ msgstr "6"
 msgid "wear.hint"
 msgstr "◀ ▶ try on  ·  A buy"
 
+msgid "toast.dug_coins"
+msgstr "You dug up %d coins!"
+
+msgid "verb.dig"
+msgstr "Dig"
+
+msgid "verb.fish"
+msgstr "Fish"
+
+msgid "toast.fish_got"
+msgstr "You caught a fish!"
+
+msgid "toast.fish_wait"
+msgstr "Wait for a bite..."
+

@@ -47,7 +47,7 @@ func _physics_process(dt: float) -> void:
 			_trace_t = 0.0
 			var p = get_tree().get_first_node_in_group("players")
 			if p:
-				print("[trace] t=%.1f pos=(%.1f,%.1f) slots=%s target=%s h=%.2f" % [Time.get_ticks_msec() / 1000.0,
+				print("[trace] t=%.1f fps=%d pos=(%.1f,%.1f) slots=%s target=%s h=%.2f" % [Time.get_ticks_msec() / 1000.0, Engine.get_frames_per_second(),
 					p.global_position.x, p.global_position.z, p.slots, p.target_info.get("verb", "-"), Game.hour])
 
 func _run_keys(dt: float) -> void:

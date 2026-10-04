@@ -27,6 +27,7 @@ var _fences_root: Node3D
 var _npcs_root: Node3D
 var _noise_tex: NoiseTexture2D
 var _sleeping := false
+var _habitat_rev := 0
 var menus: Menus
 var _ground_img: Image
 var _ground_tex: ImageTexture
@@ -422,6 +423,16 @@ func find_feeder(habitat: String, diet: Array, from: Vector3) -> Prop:
 	var best: Prop = null
 	for p in _props_root.get_children():
 		if p.def.get("feeder", "") == "food" and p.food_left() > 0 and p.feeder_food() in diet and _in_zone(p, habitat):
+			if best == null or p.global_position.distance_to(from) < best.global_position.distance_to(from):
+				best = p
+	return best
+
+## The nearest prop in the habitat whose entry passes `test` (a Callable
+## taking the entry dictionary).
+func find_prop(habitat: String, from: Vector3, test: Callable) -> Prop:
+	var best: Prop = null
+	for p in _props_root.get_children():
+		if test.call(p.def) and _in_zone(p, habitat):
 			if best == null or p.global_position.distance_to(from) < best.global_position.distance_to(from):
 				best = p
 	return best
@@ -921,7 +932,7 @@ func _suggest_name(sp: String) -> String:
 # ---------------------------------------------------------------- save / load
 
 func save_state() -> Dictionary:
-	var d := {"dinos": [], "props": [], "items": [], "open": open_zones, "uid": _uid}
+	var d := {"dinos": [], "props": [], "items": [], "open": open_zones, "uid": _uid, "habitat_rev": _habitat_rev}
 	for n in _dinos_root.get_children():
 		d.dinos.append(n.save())
 	for n in _props_root.get_children():
@@ -938,7 +949,12 @@ func load_state(d: Dictionary) -> void:
 		for c in root.get_children():
 			c.free()
 	if d.is_empty():
-		d = {"props": map.props, "dinos": map.dinos, "items": map.items, "open": ["meadow"]}
+		d = {"props": map.props, "dinos": map.dinos, "items": map.items, "open": ["meadow"], "habitat_rev": 0}
+	# habitats furnished by the map (and newer layouts for older saves)
+	if int(d.get("habitat_rev", 0)) < int(map.get("habitat_rev", 0)):
+		d.props = d.props + map.get("habitat_props", [])
+		d.habitat_rev = map.get("habitat_rev", 0)
+	_habitat_rev = int(d.get("habitat_rev", 0))
 	open_zones.assign(d.get("open", ["meadow"]))
 	if _ground_img:
 		_repaint_ground()
