@@ -378,6 +378,17 @@ func throw_item(id: String, from: Vector3, dir: Vector3) -> void:
 	it.flying = true
 	Sfx.play("throw")
 
+func on_ball_landed(ball: WorldItem) -> void:
+	var best: Dino = null
+	for d in _dinos_root.get_children():
+		if d.state == "sleep" or d.is_swimmer():
+			continue
+		var dist: float = d.global_position.distance_to(ball.global_position)
+		if dist < 10.0 and (best == null or dist < best.global_position.distance_to(ball.global_position)):
+			best = d
+	if best:
+		best.chase(ball)
+
 func place_prop_from(p: Player) -> bool:
 	var id := p.held().substr(4)
 	var at := p.front_point(1.2)
@@ -420,6 +431,20 @@ func find_feature(habitat: String, feature: String, from: Vector3) -> Prop:
 			if best == null or p.global_position.distance_to(from) < best.global_position.distance_to(from):
 				best = p
 	return best
+
+func random_point_in_pond(scale := 0.75) -> Vector3:
+	var a := randf() * TAU
+	var r := sqrt(randf()) * scale
+	return Vector3(pond_center.x + cos(a) * pond_radii.x * r, 0, pond_center.y + sin(a) * pond_radii.y * r)
+
+## Where a newborn of this species goes: inside its habitat, near the gate.
+func habitat_spawn(habitat: String) -> Vector3:
+	var z: Dictionary = zones.get(habitat, zones.meadow)
+	var r: Rect2 = z.rect
+	var g: Vector2 = z.gate
+	var inward := (r.get_center() - g).normalized()
+	var p := g + inward * 2.5
+	return Vector3(p.x, 0, p.y)
 
 func random_point_in(habitat: String, near: Vector3, radius: float) -> Vector3:
 	var r: Rect2 = zones.get(habitat, {}).get("rect", bounds)
@@ -765,9 +790,14 @@ func _close_day() -> Dictionary:
 			var sp: String = p.state.egg.substr(4)
 			p.state = {}
 			p.update_incubator_look()
+			var hab: String = Content.dinos.get(sp, {}).get("habitat", "meadow")
+			if not is_zone_open(hab):
+				hab = "meadow"
+			var at := habitat_spawn(hab)
+			if Content.dinos.get(sp, {}).get("kind", "") == "swimmer":
+				at = random_point_in_pond(0.3)
 			var nd := spawn_dino({"species": sp, "age": "baby", "name": _suggest_name(sp),
-				"pos": [p.position.x + 1.0, p.position.z + 1.2],
-				"habitat": Content.dinos.get(sp, {}).get("habitat", "meadow")})
+				"pos": [at.x, at.z], "habitat": hab})
 			nd.set_meta("unnamed", true)
 			Sfx.play("hatch")
 			s.hatched.append([nd.dino_name, sp])

@@ -51,8 +51,8 @@ func _physics_process(dt: float) -> void:
 					p.global_position.x, p.global_position.z, p.slots, p.target_info.get("verb", "-"), Game.hour])
 
 func _run_keys(dt: float) -> void:
-	if _held != "" and Input.is_action_pressed(_held) and _step_t <= 0.0:
-		Input.action_release(_held)
+	if _held != "" and _step_t <= 0.0:
+		_send(_held, false)
 		_held = ""
 	if _step_t > 0.0:
 		_step_t -= dt
@@ -71,9 +71,17 @@ func _run_keys(dt: float) -> void:
 	if act == "bhold":
 		act = "b"
 		dur = 0.6
-	_held = "p1_" + act
-	Input.action_press(_held)
+	# "ui_*" steps drive menus; anything else is player 1's action
+	_held = act if act.begins_with("ui_") else "p1_" + act
+	_send(_held, true)
 	_step_t = max(dur, 0.05)
+
+func _send(action: String, pressed: bool) -> void:
+	var e := InputEventAction.new()
+	e.action = action
+	e.pressed = pressed
+	e.strength = 1.0 if pressed else 0.0
+	Input.parse_input_event(e)
 
 func _process(dt: float) -> void:
 	if _shot == "":

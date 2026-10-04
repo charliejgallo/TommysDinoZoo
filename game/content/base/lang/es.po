@@ -691,3 +691,27 @@ msgstr "Era mitad dinosaurio y mitad pájaro: tenía plumas, alas y dientes."
 msgid "fact.plesio"
 msgstr "Vivía en el mar y nadaba con cuatro aletas, como una tortuga gigante con cuello largo."
 
+msgid "verb.pack"
+msgstr "Guardar en caja"
+
+msgid "toast.fetched"
+msgstr "¡%s te trajo la pelota!"
+
+msgid "menu.album"
+msgstr "Álbum de dinos"
+
+msgid "album.count"
+msgstr "Conocés %d de %d dinos"
+
+msgid "album.eats"
+msgstr "Come: %s"
+
+msgid "album.fav"
+msgstr "Su favorito: %s"
+
+msgid "album.home"
+msgstr "Vive en: %s"
+
+msgid "album.hearts"
+msgstr "Amistad:"
+

@@ -691,3 +691,27 @@ msgstr "It was half dinosaur, half bird: feathers, wings and teeth."
 msgid "fact.plesio"
 msgstr "It lived in the sea and swam with four flippers, like a giant long-necked turtle."
 
+msgid "verb.pack"
+msgstr "Pack up"
+
+msgid "toast.fetched"
+msgstr "%s brought the ball back!"
+
+msgid "menu.album"
+msgstr "Dino album"
+
+msgid "album.count"
+msgstr "You know %d of %d dinos"
+
+msgid "album.eats"
+msgstr "Eats: %s"
+
+msgid "album.fav"
+msgstr "Favourite: %s"
+
+msgid "album.home"
+msgstr "Lives in: %s"
+
+msgid "album.hearts"
+msgstr "Friendship:"
+

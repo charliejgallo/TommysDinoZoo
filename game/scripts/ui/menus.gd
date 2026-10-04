@@ -147,6 +147,7 @@ func show_pause() -> void:
 	get_tree().paused = true
 	var vb := _page(tr("menu.pause"))
 	_button(vb, tr("menu.resume"), close_all)
+	_button(vb, tr("menu.album"), show_album)
 	_button(vb, tr("menu.settings"), show_settings)
 	_button(vb, tr("menu.save_quit"), func():
 		Game.save_game()
@@ -514,3 +515,127 @@ func show_dialog(speaker: String, lines: Array, choices: Array, on_close: Callab
 		row.add_child(bye)
 		(first if first else bye).grab_focus.call_deferred()
 	show_line.call(show_line)
+
+# ---------------------------------------------------------------- album
+
+## One card per species: known ones (ever owned or photographed) show their
+## picture, real fact, food and habitat; unknown ones are a "?".
+func known_species() -> Array:
+	var out := []
+	for d in get_tree().get_nodes_in_group("dinos"):
+		if not (d.species in out):
+			out.append(d.species)
+	for k in Game.flags:
+		if str(k).begins_with("seen_") or str(k).begins_with("photo_"):
+			var sp := str(k).split("_", true, 1)[1]
+			if not (sp in out):
+				out.append(sp)
+	return out
+
+func show_album(focus := 0) -> void:
+	var vb := _page(tr("menu.album"))
+	var known := known_species()
+	for sp in known:
+		Game.flags["seen_" + sp] = true
+	var lbl := Label.new()
+	lbl.text = tr("album.count") % [known.size(), Content.dinos.size()]
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vb.add_child(lbl)
+	var grid := GridContainer.new()
+	grid.columns = 5
+	grid.add_theme_constant_override("h_separation", 10)
+	grid.add_theme_constant_override("v_separation", 10)
+	vb.add_child(grid)
+	var ids := Content.dinos.keys()
+	var first: Button = null
+	for i in ids.size():
+		var sp: String = ids[i]
+		var b := Button.new()
+		b.custom_minimum_size = Vector2(150, 140)
+		var has := sp in known
+		var inner := VBoxContainer.new()
+		inner.set_anchors_preset(Control.PRESET_FULL_RECT)
+		inner.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		inner.add_theme_constant_override("separation", 0)
+		var pic := TextureRect.new()
+		pic.texture = Icons.get_icon("dino:" + sp) if has else Icons.get_icon("egg")
+		pic.modulate = Color.WHITE if has else Color(0.45, 0.4, 0.35, 0.35)
+		pic.custom_minimum_size = Vector2(0, 100)
+		pic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		pic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		pic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		inner.add_child(pic)
+		var nl := Label.new()
+		nl.text = Content.dino_name(sp) if has else "?"
+		nl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		nl.add_theme_font_size_override("font_size", 16)
+		nl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		nl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		inner.add_child(nl)
+		b.add_child(inner)
+		if has:
+			b.pressed.connect(func(): show_album_card(sp))
+		else:
+			b.disabled = true
+		grid.add_child(b)
+		if first == null and has:
+			first = b
+	_button(vb, tr("menu.back"), back)
+	if first:
+		first.grab_focus.call_deferred()
+	else:
+		_focus_first(vb)
+
+func show_album_card(sp: String) -> void:
+	var vb := _page(Content.dino_name(sp))
+	var d: Dictionary = Content.dinos[sp]
+	var hb := HBoxContainer.new()
+	hb.add_theme_constant_override("separation", 20)
+	vb.add_child(hb)
+	var pic := TextureRect.new()
+	pic.texture = Icons.get_icon("dino:" + sp)
+	pic.custom_minimum_size = Vector2(260, 260)
+	pic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	pic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	hb.add_child(pic)
+	var info := VBoxContainer.new()
+	info.add_theme_constant_override("separation", 10)
+	hb.add_child(info)
+	var fact := Label.new()
+	fact.text = tr("fact." + sp)
+	fact.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	fact.custom_minimum_size = Vector2(520, 0)
+	fact.add_theme_font_size_override("font_size", 26)
+	info.add_child(fact)
+	var foods := []
+	for f in d.get("diet", []):
+		for id in Content.items:
+			if Content.items[id].get("food", "") == f:
+				foods.append(Content.item_name(id))
+				break
+	var eats := Label.new()
+	eats.text = tr("album.eats") % ", ".join(foods)
+	eats.add_theme_font_size_override("font_size", 24)
+	info.add_child(eats)
+	var fav := Label.new()
+	for id in Content.items:
+		if Content.items[id].get("food", "") == d.get("fav", ""):
+			fav.text = tr("album.fav") % Content.item_name(id)
+			break
+	fav.add_theme_font_size_override("font_size", 24)
+	info.add_child(fav)
+	var hab := Label.new()
+	hab.text = tr("album.home") % tr("habitat." + d.get("habitat", "meadow"))
+	hab.add_theme_font_size_override("font_size", 24)
+	info.add_child(hab)
+	var best := 0
+	for n in get_tree().get_nodes_in_group("dinos"):
+		if n.species == sp:
+			best = max(best, n.hearts())
+	var h := Label.new()
+	h.text = tr("album.hearts") + " " + "♥".repeat(best) + "♡".repeat(5 - best)
+	h.add_theme_color_override("font_color", Color("#ff5d8f"))
+	h.add_theme_font_size_override("font_size", 28)
+	info.add_child(h)
+	_button(vb, tr("menu.back"), back)
+	_focus_first(vb)
