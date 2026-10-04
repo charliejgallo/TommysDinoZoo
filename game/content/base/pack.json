@@ -87,5 +87,6 @@
     "canyon":    {"color": "#d9a66c", "price": 500},
     "cliff":     {"color": "#c9c3b8", "price": 700},
     "rexvalley": {"color": "#a8c46a", "price": 900}
-  }
+  },
+  "wardrobe": {"cap": [["red", "#d81e2c", 0], ["blue", "#2f6fe0", 20], ["green", "#3fae4a", 20], ["yellow", "#ffc93a", 20], ["pink", "#ff7fb0", 25], ["purple", "#8a5ae0", 25], ["black", "#2b2b38", 30], ["rainbow", "#ff9a3c", 40]], "shirt": [["blue", "#2a63d8", 0], ["red", "#e0453a", 20], ["green", "#3fae4a", 20], ["orange", "#ff9a3c", 20], ["pink", "#ff7fb0", 25], ["teal", "#2fb8b0", 25], ["yellow", "#ffd23a", 25]], "pants": [["navy", "#1f2f6b", 0], ["denim", "#4a78c0", 15], ["khaki", "#c8a76a", 15], ["red", "#c0392b", 20], ["green", "#2f7d4a", 20]], "shoes": [["red", "#e0283a", 0], ["blue", "#2f6fe0", 15], ["white", "#f4f4f4", 15], ["yellow", "#ffc93a", 15], ["green", "#3fae4a", 15]], "skin": [["s1", "#ffd9c2", 0], ["s2", "#f1c09a", 0], ["s3", "#d9a074", 0], ["s4", "#b97a4f", 0], ["s5", "#8a5636", 0], ["s6", "#5e3a24", 0]], "hair": [["brown", "#6b3e22", 0], ["black", "#2a2024", 0], ["blond", "#e8c06a", 0], ["red", "#c4572e", 0], ["light", "#b8865a", 0], ["grey", "#b9b9c0", 0]]}
 }

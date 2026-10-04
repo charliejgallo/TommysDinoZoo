@@ -715,3 +715,108 @@ msgstr "Lives in: %s"
 msgid "album.hearts"
 msgstr "Friendship:"
 
+msgid "npc.home"
+msgstr "Home"
+
+msgid "home.hello"
+msgstr "Tommy's little house. What shall we do?"
+
+msgid "home.wardrobe"
+msgstr "Wardrobe"
+
+msgid "verb.home"
+msgstr "Go in"
+
+msgid "wear.cap"
+msgstr "Cap"
+
+msgid "wear.shirt"
+msgstr "T-shirt"
+
+msgid "wear.pants"
+msgstr "Trousers"
+
+msgid "wear.shoes"
+msgstr "Sneakers"
+
+msgid "wear.skin"
+msgstr "Skin"
+
+msgid "wear.hair"
+msgstr "Hair"
+
+msgid "color.red"
+msgstr "Red"
+
+msgid "color.blue"
+msgstr "Blue"
+
+msgid "color.green"
+msgstr "Green"
+
+msgid "color.yellow"
+msgstr "Yellow"
+
+msgid "color.pink"
+msgstr "Pink"
+
+msgid "color.purple"
+msgstr "Purple"
+
+msgid "color.black"
+msgstr "Black"
+
+msgid "color.rainbow"
+msgstr "Orange"
+
+msgid "color.orange"
+msgstr "Orange"
+
+msgid "color.teal"
+msgstr "Teal"
+
+msgid "color.navy"
+msgstr "Navy"
+
+msgid "color.denim"
+msgstr "Denim"
+
+msgid "color.khaki"
+msgstr "Khaki"
+
+msgid "color.white"
+msgstr "White"
+
+msgid "color.brown"
+msgstr "Brown"
+
+msgid "color.blond"
+msgstr "Blond"
+
+msgid "color.light"
+msgstr "Light"
+
+msgid "color.grey"
+msgstr "Grey"
+
+msgid "color.s1"
+msgstr "1"
+
+msgid "color.s2"
+msgstr "2"
+
+msgid "color.s3"
+msgstr "3"
+
+msgid "color.s4"
+msgstr "4"
+
+msgid "color.s5"
+msgstr "5"
+
+msgid "color.s6"
+msgstr "6"
+
+msgid "wear.hint"
+msgstr "◀ ▶ try on  ·  A buy"
+

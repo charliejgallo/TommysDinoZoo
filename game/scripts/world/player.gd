@@ -58,6 +58,33 @@ func _ready() -> void:
 	if head and ResourceLoader.exists(Content.model_path("cap_basic")):
 		head.add_child(cap_node)
 	_refresh_held()
+	apply_outfit()
+
+## Recolour Tommy by material role from Game.flags.outfit (role -> index
+## into the wardrobe table). Materials are duplicated so only he changes.
+func apply_outfit() -> void:
+	var outfit: Dictionary = Game.flags.get("outfit", {})
+	var table: Dictionary = Content.wardrobe
+	for mi in find_children("*", "MeshInstance3D", true, false):
+		if mi.mesh == null:
+			continue
+		for i in mi.mesh.get_surface_count():
+			var m = mi.get_active_material(i)
+			if not (m is ShaderMaterial):
+				continue
+			var role: String = m.resource_name
+			var shade := 1.0
+			if role == "cap_brim":
+				role = "cap"
+				shade = 0.85
+			if not table.has(role):
+				continue
+			var idx: int = int(outfit.get(role, 0))
+			var own: ShaderMaterial = m if m.has_meta("own") else m.duplicate()
+			own.set_meta("own", true)
+			own.set_shader_parameter("tint", Color(table[role][idx][1]) * Color(shade, shade, shade))
+			own.set_shader_parameter("tint_mix", 0.0 if idx == 0 else 1.0)
+			mi.set_surface_override_material(i, own)
 
 func held() -> String:
 	return slots[active]

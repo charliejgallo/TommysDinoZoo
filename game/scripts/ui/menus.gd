@@ -639,3 +639,93 @@ func show_album_card(sp: String) -> void:
 	info.add_child(h)
 	_button(vb, tr("menu.back"), back)
 	_focus_first(vb)
+
+# ---------------------------------------------------------------- wardrobe
+
+const WARDROBE_ROLES := ["cap", "shirt", "pants", "shoes", "skin", "hair"]
+
+## Left/right tries a colour on Tommy (the camera comes close); A buys it if
+## it isn't his yet. Leaving puts back whatever he didn't buy.
+func show_wardrobe(player: Node) -> void:
+	get_tree().paused = true
+	var world := get_tree().get_first_node_in_group("world")
+	world.cam_override = 0.42
+	player.face_towards(player.global_position + Vector3(0, 0, 5))
+	var vb := _page(tr("home.wardrobe"))
+	var panel: Control = vb.get_parent()
+	panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER_LEFT)
+	panel.offset_left = 50
+	panel.grow_horizontal = Control.GROW_DIRECTION_END
+	var holder: Control = panel.get_parent()
+	holder.get_child(0).color = Color(0, 0, 0, 0)
+	var saved: Dictionary = Game.flags.get("outfit", {}).duplicate()
+	var coins := Label.new()
+	coins.text = tr("shop.coins") % Game.coins
+	coins.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vb.add_child(coins)
+	var hint := Label.new()
+	hint.text = tr("wear.hint")
+	hint.add_theme_font_size_override("font_size", 22)
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vb.add_child(hint)
+	var owned := func(role: String, o: Array) -> bool:
+		return int(o[2]) == 0 or Game.flags.get("owned_%s_%s" % [role, o[0]], false)
+	for role in WARDROBE_ROLES:
+		var opts: Array = Content.wardrobe.get(role, [])
+		if opts.is_empty():
+			continue
+		var r: String = role
+		var hb := HBoxContainer.new()
+		hb.add_theme_constant_override("separation", 12)
+		var l := Label.new()
+		l.text = tr("wear." + r)
+		l.custom_minimum_size = Vector2(190, 0)
+		l.add_theme_font_size_override("font_size", 28)
+		hb.add_child(l)
+		var b := Button.new()
+		b.custom_minimum_size = Vector2(330, 58)
+		var st := {"i": int(saved.get(r, 0))}
+		var refresh := func():
+			var o: Array = opts[st.i]
+			var mine: bool = owned.call(r, o)
+			b.text = "‹  %s%s  ›" % [tr("color." + o[0]), "" if mine else "  · %d" % int(o[2])]
+			var of: Dictionary = Game.flags.get("outfit", {})
+			of[r] = st.i
+			Game.flags["outfit"] = of
+			player.apply_outfit()
+		refresh.call()
+		b.gui_input.connect(func(e: InputEvent):
+			if e.is_action_pressed("ui_left") or e.is_action_pressed("ui_right"):
+				st.i = (st.i + (1 if e.is_action_pressed("ui_right") else -1) + opts.size()) % opts.size()
+				refresh.call()
+				Sfx.play("ui_move")
+				b.accept_event())
+		b.pressed.connect(func():
+			var o: Array = opts[st.i]
+			if owned.call(r, o):
+				saved[r] = st.i
+				Sfx.play("ui")
+				return
+			if not Game.can_pay(int(o[2])):
+				Sfx.play("nope")
+				return
+			Game.add_coins(-int(o[2]))
+			Game.flags["owned_%s_%s" % [r, o[0]]] = true
+			saved[r] = st.i
+			Sfx.play("buy")
+			coins.text = tr("shop.coins") % Game.coins
+			refresh.call())
+		hb.add_child(b)
+		vb.add_child(hb)
+	_button(vb, tr("menu.back"), func():
+		# keep only what he owns
+		var of: Dictionary = Game.flags.get("outfit", {})
+		for rr in of.keys():
+			var o: Array = Content.wardrobe[rr][int(of[rr])]
+			if not owned.call(rr, o):
+				of[rr] = saved.get(rr, 0)
+		Game.flags["outfit"] = of
+		player.apply_outfit()
+		world.cam_override = 0.0
+		back())
+	_focus_first(vb)
