@@ -116,7 +116,7 @@ msgid "summary.grew"
 msgstr "¡%s creció! Ahora es %s"
 
 msgid "summary.hatched"
-msgstr "¡Nació un bebé %s! Se llama %s"
+msgstr "¡Nació un bebé %s! Mañana le ponemos nombre"
 
 msgid "summary.pets"
 msgstr "%s recibió %d mimos"
@@ -477,4 +477,34 @@ msgstr "Cartel"
 
 msgid "prop.house"
 msgstr "Casa"
+
+msgid "name.title"
+msgstr "¡Nació un bebé %s!"
+
+msgid "name.ask"
+msgstr "¿Cómo lo llamamos?"
+
+msgid "name.write"
+msgstr "o escribí un nombre..."
+
+msgid "name.ok"
+msgstr "¡Listo!"
+
+msgid "toast.welcome"
+msgstr "¡Bienvenido, %s!"
+
+msgid "verb.buy_land"
+msgstr "Comprar terreno"
+
+msgid "land.ask"
+msgstr "¿Comprar %s por %d monedas?"
+
+msgid "land.opened"
+msgstr "¡%s abierto! Ya pueden vivir dinos ahí"
+
+msgid "menu.yes"
+msgstr "¡Sí!"
+
+msgid "menu.no"
+msgstr "Todavía no"
 

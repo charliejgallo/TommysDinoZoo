@@ -69,12 +69,30 @@ func _ready() -> void:
 	if def.get("light", false):
 		_light = OmniLight3D.new()
 		_light.position.y = 1.9
-		_light.omni_range = 6.0
+		_light.omni_range = 7.0
 		_light.light_color = Color(1.0, 0.85, 0.55)
 		_light.light_energy = 0.0
 		add_child(_light)
 	if def.get("feeder", "") != "":
 		_update_feeder_look()
+	if def.has("incubator"):
+		update_incubator_look()
+
+func update_incubator_look() -> void:
+	var old := get_node_or_null("Egg")
+	if old:
+		old.free()
+	var egg: String = state.get("egg", "")
+	if egg == "":
+		return
+	var m := Content.instance_model(egg if ResourceLoader.exists(Content.model_path(egg)) else "egg_trike", Vector3(0.2, 0.26, 0.2), Color(1, 0.95, 0.85))
+	m.name = "Egg"
+	m.position = Vector3(0, 0.42, 0)
+	add_child(m)
+	var ap: AnimationPlayer = m.find_child("AnimationPlayer", true, false)
+	if ap and ap.has_animation("wobble"):
+		ap.get_animation("wobble").loop_mode = Animation.LOOP_LINEAR
+		ap.play("wobble")
 
 func _interactive() -> bool:
 	for k in ["feeder", "incubator", "plot", "missions", "home", "harvest", "shake", "shop"]:
@@ -84,7 +102,7 @@ func _interactive() -> bool:
 
 func set_night(amount: float) -> void:
 	if _light:
-		_light.light_energy = amount * 1.6
+		_light.light_energy = amount * 2.6
 
 func interact_point() -> Vector3:
 	return global_position + Vector3(0, 0.5, 0)
@@ -118,9 +136,32 @@ func feed_dino(d: Dino) -> bool:
 	return true
 
 func _update_feeder_look() -> void:
-	var fill := model.find_child("food", true, false) as Node3D
-	if fill:
-		fill.visible = food_left() > 0
+	# the trough shows little copies of the food it holds (one per 2 portions)
+	var bed := model.find_child("food", true, false) as Node3D
+	if bed:
+		bed.visible = food_left() > 0
+	var pile := get_node_or_null("FoodPile")
+	if pile:
+		pile.free()
+	if food_left() <= 0 or def.get("feeder", "") != "food":
+		return
+	pile = Node3D.new()
+	pile.name = "FoodPile"
+	add_child(pile)
+	var item: Dictionary = {}
+	for id in Content.items:
+		if Content.items[id].get("food", "") == feeder_food():
+			item = Content.items[id]
+			break
+	var n := int(ceil(food_left() / 2.0))
+	for i in n:
+		var m := Content.instance_model(item.get("model", "item_fern"), Vector3(0.15, 0.15, 0.15), Color(0.4, 0.8, 0.3))
+		var x := (float(i) - (n - 1) / 2.0) * 0.32
+		m.position = Vector3(x, 0.42, randf_range(-0.06, 0.06))
+		m.rotation.y = randf() * TAU
+		m.scale = Vector3.ONE * 1.6
+		m.rotation.z = deg_to_rad(80) if randf() < 0.5 else 0.0
+		pile.add_child(m)
 
 # ---------------------------------------------------------------- player
 
@@ -171,6 +212,7 @@ func interact(p: Player, info: Dictionary) -> void:
 		"incubate":
 			state.egg = p.take_held()
 			state.since = Game.day
+			update_incubator_look()
 			p.anim_once("give")
 			Sfx.play("egg")
 			world().toast(tr("toast.egg_in"), "egg")

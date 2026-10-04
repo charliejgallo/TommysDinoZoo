@@ -10,9 +10,23 @@ model is scaled afterwards so the top of its head stands at `height` metres;
 ages re-proportion it first, see dino_lib.AGES). Parts are feature names
 from dino_lib.FEATURES with their options.
 
-Walk / run speeds each model was animated for (m/s; root stays in place,
-the game moves the node at this speed so the feet do not slide):
-  SPEEDS_DOC (filled in below and printed by --list)
+Walk / run speeds each model was animated for (m/s; the root stays in
+place, the game moves the node at exactly this speed and the feet do not
+slide; verified in Blender: planted feet move back at this speed):
+
+  model           walk m/s (cycle s)   run m/s (cycle s)
+  trike_baby      0.80 (0.40)          1.80 (0.30)
+  trike_juv       1.00 (0.40)          2.20 (0.37)
+  trike_adult     1.20 (0.53)          2.60 (0.50)
+  raptor_adult    1.40 (0.40)          4.00 (0.27)
+  trex_adult      1.60 (0.80)          3.50 (0.77)
+  brachio_adult   1.40 (1.07)          2.40 (1.20)
+  (other species/ages: spec['speeds']; the build prints them.)
+
+Animations (30 fps, every bone keyed every frame; loops marked *):
+  idle* 3.0  walk* / run* (above)  eat 1.5  drink 1.5  sleep* 3.0  happy 1.0
+  pet 1.2  sit* 2.0  call 1.0  play 0.8  sad* 3.0   (seconds)
+  egg_<id>: idle* 1.0 (still), wobble* 1.0.
 """
 import os
 import sys
@@ -26,33 +40,149 @@ import tdz_common as C  # noqa: E402
 # teal spots (the Monster Hop trike, softer). Pushes the ball with its horns.
 # --------------------------------------------------------------------------
 TRIKE = dict(
-    id='trike', plan='quad', height=1.4,
+    id='trike', plan='quad', height=1.4, lod=0.9,
     pal=dict(body='#ac95d8', belly='#f7ebd3', accent='#f8963c', spots='#3cb6a6',
              horn='#fbf0d4', eye_white='#ffffff', pupil='#2b2033', mouth='#6e2c48',
              tongue='#f48aa2', blush='#ff9ab8'),
-    torso=(0.36, 0.48, 0.32), leg=0.17, leg_r=0.095, knee=0.05,
+    torso=(0.35, 0.43, 0.33), leg=0.23, leg_r=0.095, knee=0.05,
     neck_len=0.10, neck_deg=35, neck_n=1, neck_r=0.52,
-    head=dict(r=(0.25, 0.24, 0.23), off=(0.40, 0.30), snout=(0.60, 0.62, 0.58),
+    head=dict(r=(0.29, 0.28, 0.27), off=(0.40, 0.30), snout=(0.60, 0.62, 0.58),
               snout_fwd=0.60, snout_drop=0.30, cheeks=(0.55, 0.15, 0.25, 0.42)),
-    eye=dict(r=0.27, az=40, el=16, flat=0.55, gaze=0.18),
+    eye=dict(r=0.27, az=40, el=16, flat=0.5, gaze=0.18),
     tail=dict(len=0.42, r=0.52, n=3, droop_deg=28, droop2_deg=2, tip=0.18),
     parts=[
-        ('frill', dict(r=1.62, tilt_deg=38, span_deg=232, scallops=7, up=0.42, back=0.35)),
+        ('frill', dict(r=1.42, tilt_deg=48, span_deg=220, scallops=7, up=0.40, back=0.36, cup=0.12,
+                       wrap=0.38, thick=0.2)),
         ('horns', dict(horns=[
             dict(az=26, el=50, len=1.25, r=0.17, dir=(0.12, -0.45, 0.88), curl=(0.0, -1.0, 0.15),
                  mirror=True),
             dict(on='snout', az=0, el=58, len=0.5, r=0.17, dir=(0, -0.3, 0.95), curl=(0, -1, 0.3)),
         ])),
-        ('beak', dict()),
+        ('beak', dict(size=0.78)),
         ('spots', dict(spots=[(180, 62, 0.30), (150, 45, 0.22), (210, 45, 0.22),
                               (165, 80, 0.20), (120, 30, 0.16), (240, 30, 0.16),
                               (35, 70, 0.16), (325, 70, 0.16)])),
     ],
+    moves=dict(stance={'head': (-6, 0, 0)}),
     speeds={'baby': (0.8, 1.8), 'juv': (1.0, 2.2), 'adult': (1.2, 2.6)},
 )
 
-SPECIES = {'trike': TRIKE}
+# --------------------------------------------------------------------------
+# Velociraptor: feathered and playful like a puppy. Blue, cream belly,
+# orange crest/arm/tail feathers, dark blue stripes (Monster Hop raptor).
+# --------------------------------------------------------------------------
+RAPTOR = dict(
+    id='raptor', plan='biped', height=0.9,
+    pal=dict(body='#5c8ad8', belly='#f6ead0', accent='#ff8a2c', spots='#2f4a99',
+             horn='#fbf3e0', eye_white='#ffffff', pupil='#241c30', mouth='#6a2840',
+             tongue='#f48aa2', blush='#ff9ab8'),
+    torso=(0.22, 0.30, 0.23), tilt_deg=26, t_fwd=0.22, leg=0.34, leg_r=0.065, knee=0.24,
+    thigh_r=1.9, foot_len=1.9, arm_len=0.75, arm_r=0.17, arm_z=-0.05,
+    neck_len=0.16, neck_deg=72, neck_deg2=35, neck_n=2, neck_r=0.48,
+    head=dict(r=(0.21, 0.23, 0.20), off=(0.40, 0.25), snout=(0.66, 0.78, 0.52),
+              snout_fwd=0.50, snout_drop=0.22, snout_taper=(0.28, 0.12), teeth=True,
+              smile=dict(width=70, z=-0.32, curl=0.28)),
+    eye=dict(r=0.30, az=38, el=20, flat=0.5, gaze=0.2),
+    tail=dict(len=0.80, r=0.42, n=4, droop_deg=12, droop2_deg=-14, tip=0.2, flat=0.8),
+    toes=3,
+    parts=[
+        ('feathers', dict(crest=[(0.0, 1.1, 0.7, 0.2), (-0.28, 0.8, 0.6, 0.16), (0.28, 0.8, 0.6, 0.16)],
+                          arms=3, tail_tuft=3)),
+        ('stripes', dict(n=3, width=0.13, length=0.75, start=0.25, end=0.8, tail=3)),
+    ],
+    moves=dict(stance={'head': (-4, 0, 0)}),
+    speeds={'baby': (0.8, 2.4), 'juv': (1.1, 3.2), 'adult': (1.4, 4.0)},
+)
+
+# --------------------------------------------------------------------------
+# T-Rex: a big cuddly green rex, tiny arms that clap, no scary teeth.
+# --------------------------------------------------------------------------
+TREX = dict(
+    id='trex', plan='biped', height=2.4,
+    pal=dict(body='#6cba6a', belly='#f3e3b2', accent='#f4c04e', spots='#4a8f55',
+             horn='#fbf3e0', eye_white='#ffffff', pupil='#241c30', mouth='#6a2840',
+             tongue='#f58aa4', blush='#ff9ab8'),
+    torso=(0.40, 0.48, 0.42), tilt_deg=24, t_fwd=0.2, leg=0.44, leg_r=0.12, knee=0.2,
+    thigh_r=1.75, foot_len=1.6, arm_len=0.36, arm_r=0.13, arm_z=0.05,
+    neck_len=0.17, neck_deg=62, neck_deg2=28, neck_n=2, neck_r=0.62,
+    head=dict(r=(0.29, 0.33, 0.27), off=(0.42, 0.2), snout=(0.80, 0.80, 0.60),
+              snout_fwd=0.50, snout_drop=0.16, snout_taper=(0.14, 0.08),
+              smile=dict(width=78, z=-0.30, curl=0.30)),
+    eye=dict(r=0.28, az=40, el=24, flat=0.5, gaze=0.2),
+    tail=dict(len=1.05, r=0.5, n=4, droop_deg=14, droop2_deg=-6, tip=0.18, flat=0.85),
+    toes=3,
+    parts=[
+        ('ridge', dict(n=7, size=0.22, start=0.15, end=0.95, tail=4)),
+        ('stripes', dict(n=4, width=0.11, length=0.7, start=0.3, end=0.9, tail=0)),
+    ],
+    moves=dict(stance={'head': (-4, 0, 0)}, clap=True),
+    speeds={'baby': (0.8, 2.0), 'juv': (1.2, 2.8), 'adult': (1.6, 3.5)},
+)
+
+# --------------------------------------------------------------------------
+# Brachiosaurus: the 4 m gentle giant; lowers its neck for Tommy in `pet`.
+# --------------------------------------------------------------------------
+BRACHIO = dict(
+    id='brachio', plan='sauropod', height=4.0,
+    pal=dict(body='#7cc6b6', belly='#f4eed4', accent='#f6c46e', spots='#58a89b',
+             horn='#fbf3e0', eye_white='#ffffff', pupil='#241c30', mouth='#6a2840',
+             tongue='#f58aa4', blush='#ff9ab8'),
+    torso=(0.60, 0.78, 0.55), leg=0.55, fleg=0.78, leg_r=0.17, fleg_r=1.0, knee=0.04,
+    neck_z=0.35, neck_len=1.55, neck_deg=74, neck_deg2=60, neck_n=5, neck_r=0.40,
+    neck_taper=0.6,
+    head=dict(r=(0.23, 0.26, 0.21), off=(0.42, 0.25), snout=(0.72, 0.55, 0.62),
+              snout_fwd=0.5, snout_drop=0.2),
+    eye=dict(r=0.32, az=46, el=20, flat=0.5, gaze=0.2),
+    tail=dict(len=1.3, r=0.42, n=4, droop_deg=28, droop2_deg=4, tip=0.15),
+    parts=[
+        ('bump', dict(az=0, el=48, r=(0.55, 0.65, 0.42), mat='accent')),
+        ('spots', dict(spots=[(180, 65, 0.24), (150, 45, 0.18), (210, 45, 0.18), (170, 85, 0.18),
+                              (120, 28, 0.14), (240, 28, 0.14), (40, 60, 0.14), (320, 60, 0.14)])),
+    ],
+    moves=dict(stance={'head': (-4, 0, 0)}),
+    speeds={'baby': (0.8, 1.6), 'juv': (1.1, 2.0), 'adult': (1.4, 2.4)},
+)
+
+# --------------------------------------------------------------------------
+# DRAFTS (not part of the style sample; they exercise the flier and swimmer
+# body plans so the framework is ready for the full roster).
+# --------------------------------------------------------------------------
+PTERA = dict(
+    id='ptera', plan='flier', height=1.0, draft=True,
+    pal=dict(body='#d8644e', belly='#f7b07c', accent='#ffd14a', horn='#fbf3e0',
+             eye_white='#ffffff', pupil='#241c30', mouth='#6a2840', tongue='#f58aa4',
+             blush='#ff9ab8'),
+    torso=(0.16, 0.22, 0.17), tilt_deg=40, leg=0.26, leg_r=0.05, knee=0.2, foot_len=1.5,
+    wing_len=2.4, wing_chord=0.45, neck_len=0.16, neck_deg=70, neck_deg2=30, neck_n=2,
+    head=dict(r=(0.17, 0.20, 0.16), off=(0.4, 0.2), snout=(0.5, 1.3, 0.42), snout_fwd=0.5,
+              snout_drop=0.1, snout_taper=(0.6, 0.4), jaw_mat='accent', nostrils=False),
+    eye=dict(r=0.32, az=42, el=18, flat=0.5),
+    tail=dict(len=0.25, r=0.35, n=2, droop_deg=20),
+    parts=[('bump', dict(az=180, el=50, r=(0.18, 0.9, 0.35), mat='accent'))],
+    moves=dict(stance={'wing.L': (0, 75, -20), 'wing.R': (0, -75, 20),
+                       'wing2.L': (0, 110, 0), 'wing2.R': (0, -110, 0)}),
+    speeds={'baby': (0.8, 1.6), 'juv': (1.0, 2.0), 'adult': (1.2, 2.4)},
+)
+PLESIO = dict(
+    id='plesio', plan='swimmer', height=1.2, draft=True,
+    pal=dict(body='#6f9fe0', belly='#eef0dc', spots='#4a78c0', horn='#fbf3e0',
+             eye_white='#ffffff', pupil='#241c30', mouth='#6a2840', tongue='#f58aa4',
+             blush='#ff9ab8'),
+    torso=(0.40, 0.55, 0.26), leg=0.05, leg_r=0.09, flipper=1.0,
+    neck_len=0.75, neck_deg=62, neck_deg2=40, neck_n=4, neck_r=0.42, neck_taper=0.65,
+    head=dict(r=(0.20, 0.23, 0.18), off=(0.4, 0.2), snout=(0.7, 0.6, 0.55)),
+    eye=dict(r=0.32, az=42, el=20, flat=0.5),
+    tail=dict(len=0.45, r=0.45, n=3, droop_deg=5),
+    parts=[('spots', dict(spots=[(180, 60, 0.3), (150, 40, 0.2), (210, 40, 0.2)]))],
+    speeds={'baby': (0.8, 1.6), 'juv': (1.0, 2.0), 'adult': (1.2, 2.4)},
+)
+
+SPECIES = {'trike': TRIKE, 'raptor': RAPTOR, 'trex': TREX, 'brachio': BRACHIO,
+           'ptera': PTERA, 'plesio': PLESIO}
 EGGS = {'trike': dict(shell='#f8eedb', spots='#b49ade')}
+
+
+A_ = C.args()
 
 
 def build_one(name, out):
@@ -66,6 +196,8 @@ def build_one(name, out):
     DL.export_glb(path)
     print('[dino] %s tris=%d bones=%d mats=%d' % (name, DL.tris(D.body), len(D.R.names),
                                                   len(D.body.data.materials)))
+    if A_.get('stats'):
+        print('[dino]   tris by part:', ', '.join('%s %d' % kv for kv in D.tri_stats))
     for a, (f, t) in D.actions.items():
         print('[dino]   %-6s %3d frames %.2f s' % (a, f, t))
     for k, (v, T) in D.speeds.items():
@@ -76,7 +208,7 @@ def build_one(name, out):
 def build_egg(sid, out):
     import math
     from mathutils import Vector as V
-    C.reset()
+    DL.reset()
     e = EGGS[sid]
     shell = C.mat('body', e['shell'])
     spot = C.mat('spots', e['spots'])
@@ -90,8 +222,10 @@ def build_egg(sid, out):
     ob = DL.ell('egg', shell, (0, 0, h * 0.5), (h * 0.37, h * 0.37, h * 0.5), seg=24, rings=16,
                 deform=egg)
     parts = [ob]
-    for i, (az, el, s) in enumerate([(20, 30, 0.22), (130, 10, 0.18), (250, 40, 0.2), (200, -20, 0.16),
-                                     (310, -5, 0.17), (80, -30, 0.15), (0, 70, 0.12), (170, 55, 0.14)]):
+    for i, (az, el, s) in enumerate([(20, 30, 0.24), (130, 10, 0.2), (250, 40, 0.22), (200, -20, 0.18),
+                                     (310, -5, 0.2), (80, -30, 0.17), (0, 72, 0.13), (170, 55, 0.16),
+                                     (60, 8, 0.14), (100, 45, 0.15), (290, 50, 0.14), (340, -40, 0.15),
+                                     (220, 10, 0.13), (150, -45, 0.15)]):
         p, n = DL.on_ell((0, 0, h * 0.5), (h * 0.37 * (1 - 0.18 * math.sin(math.radians(el))),) * 2 +
                          (h * 0.5,), az, el)
         parts.append(DL.decal('spot', spot, ob, p, n, h * s * 0.45, lift=0.0015))
@@ -128,7 +262,8 @@ def main():
                                     'game', 'assets', 'models'))
     only = A.get('only')
     names = only.split(',') if isinstance(only, str) else \
-        ['%s_%s' % (s, a) for s in SPECIES for a in ('baby', 'juv', 'adult')] + \
+        ['%s_%s' % (s, a) for s in SPECIES if not SPECIES[s].get('draft')
+         for a in ('baby', 'juv', 'adult')] + \
         ['egg_' + s for s in EGGS]
     for n in names:
         build_one(n, out)

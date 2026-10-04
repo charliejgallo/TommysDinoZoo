@@ -116,7 +116,7 @@ msgid "summary.grew"
 msgstr "%s grew! Now a %s"
 
 msgid "summary.hatched"
-msgstr "A baby %s hatched! Its name is %s"
+msgstr "A baby %s hatched! We'll name it in the morning"
 
 msgid "summary.pets"
 msgstr "%s got %d cuddles"
@@ -477,4 +477,34 @@ msgstr "Sign"
 
 msgid "prop.house"
 msgstr "House"
+
+msgid "name.title"
+msgstr "A baby %s hatched!"
+
+msgid "name.ask"
+msgstr "What shall we call it?"
+
+msgid "name.write"
+msgstr "or type a name..."
+
+msgid "name.ok"
+msgstr "Done!"
+
+msgid "toast.welcome"
+msgstr "Welcome, %s!"
+
+msgid "verb.buy_land"
+msgstr "Buy land"
+
+msgid "land.ask"
+msgstr "Buy the %s for %d coins?"
+
+msgid "land.opened"
+msgstr "%s is open! Dinos can live there now"
+
+msgid "menu.yes"
+msgstr "Yes!"
+
+msgid "menu.no"
+msgstr "Not yet"
 

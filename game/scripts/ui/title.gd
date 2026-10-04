@@ -11,7 +11,7 @@ func _ready() -> void:
 	Stage.make_env(self)
 	var g := MeshInstance3D.new()
 	var pm := PlaneMesh.new()
-	pm.size = Vector2(80, 80)
+	pm.size = Vector2(400, 400)
 	g.mesh = pm
 	var gm := ShaderMaterial.new()
 	gm.shader = Look.TOON
@@ -33,6 +33,10 @@ func _ready() -> void:
 		n.position = e[1]
 		n.rotation_degrees.y = e[2]
 		add_child(n)
+		if e[0] == "tommy":
+			var head := AnimRig.attach(n, "head")
+			if head:
+				head.add_child(Content.instance_model("cap_basic", Vector3.ZERO))
 		var ap: AnimationPlayer = n.find_child("AnimationPlayer", true, false)
 		if ap:
 			var rig := AnimRig.new(n)
@@ -43,9 +47,10 @@ func _ready() -> void:
 	menus = Menus.new()
 	add_child(menus)
 	menus.show_title()
+	Music.play("title")
 
 func _process(dt: float) -> void:
 	_t += dt
-	var a := sin(_t * 0.08) * 0.35
-	cam.position = Vector3(sin(a) * 13.0 - 2.0, 6.5, cos(a) * 13.0 + 1.0)
-	cam.look_at(Vector3(-2.5, 1.2, -2), Vector3.UP)
+	var a := sin(_t * 0.08) * 0.3 - 0.25
+	cam.position = Vector3(sin(a) * 14.0 - 4.0, 7.5, cos(a) * 14.0 + 2.0)
+	cam.look_at(Vector3(-6.0, 1.0, -2.5), Vector3.UP)

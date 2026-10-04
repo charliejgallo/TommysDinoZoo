@@ -80,8 +80,11 @@ func _ready() -> void:
 	bubble.visible = false
 	add_child(bubble)
 	_facing = randf() * TAU
+	if Dev.arg("still") != "":
+		_facing = PI * 0.15
 	model.rotation.y = _facing
-	_pick_wander()
+	if Dev.arg("still") == "":
+		_pick_wander()
 
 func _build_model() -> void:
 	if model:
@@ -100,7 +103,7 @@ func _build_model() -> void:
 
 func walk_speed() -> float:
 	var w := float(def.get("walk", 1.0))
-	return w * (0.8 if age == "baby" else (0.9 if age == "juv" else 1.0))
+	return w * (0.67 if age == "baby" else (0.83 if age == "juv" else 1.0))
 
 func mood() -> float:
 	var t := 0.0
@@ -173,6 +176,9 @@ func _set_state(s: String, t: float) -> void:
 	_state_t = t
 
 func _think() -> void:
+	if Dev.arg("still") != "":
+		_set_state("idle", 2.0)
+		return
 	if Game.hour >= 20.0:
 		var nest = _world().find_feature(habitat, "bed", global_position)
 		if nest and global_position.distance_to(nest.global_position) > 1.2:
@@ -193,6 +199,8 @@ func _think() -> void:
 	else:
 		if randf() < 0.3 and rig.has("call"):
 			rig.once("call")
+			if _world().players[0].global_position.distance_to(global_position) < 9.0:
+				voice()
 		_set_state("idle", randf_range(2.0, 5.0))
 
 func _pick_wander() -> void:
@@ -225,7 +233,7 @@ func _walk_to(p: Vector3, dt: float) -> void:
 	velocity.y = 0
 	move_and_slide()
 	global_position.y = 0.0
-	rig.loop("walk", 1.0)
+	rig.loop("walk", sp / walk_speed())
 	if global_position.distance_to(_last_pos) < sp * dt * 0.3:
 		_stuck_t += dt
 	else:
@@ -299,6 +307,7 @@ func interact(p: Player, info: Dictionary) -> void:
 			_pet_cool = 20.0
 			_world().fx_hearts(interact_point() + Vector3(0, size() * 0.4, 0), 3)
 			Sfx.play("pet")
+			voice()
 			Game.count("pets")
 			Game.count("pet_" + species)
 		"feed":
@@ -334,7 +343,8 @@ func interact(p: Player, info: Dictionary) -> void:
 			_set_state("react", rig.once("play") if rig.has("play") else rig.once("happy"))
 			needs.fun = clamp(needs.fun + 0.4, 0.0, 1.0)
 			_befriend(1)
-			Sfx.play("happy")
+			Sfx.play("ball")
+			voice()
 			Game.count("played")
 		"photo":
 			p.anim_once("use")
@@ -344,10 +354,16 @@ func interact(p: Player, info: Dictionary) -> void:
 			_world().fx_flash()
 			Sfx.play("photo")
 
+func voice() -> void:
+	var s := size()
+	var v := "baby" if age == "baby" else ("tiny" if s < 0.5 else ("small" if s < 1.0 else ("mid" if s < 2.0 else "big")))
+	Sfx.play("voice_%s_%d" % [v, randi_range(1, 2)], 0.06, -4.0)
+
 func _befriend(n: int) -> void:
 	var before := hearts()
 	friendship = min(friendship + n, 100)
 	if hearts() > before:
+		Sfx.play("heart")
 		_world().toast(tr("toast.heart_up") % [dino_name if dino_name != "" else Content.dino_name(species)], "heart")
 
 func _update_bubble() -> void:

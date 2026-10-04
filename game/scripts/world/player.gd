@@ -29,6 +29,7 @@ var _push_t := 0.0
 var _b_t := -1.0
 var _lock_until := 0.0
 var _facing := 0.0
+var _step_t := 0.0
 
 func _ready() -> void:
 	add_to_group("players")
@@ -40,7 +41,7 @@ func _ready() -> void:
 	col.position.y = 0.5
 	add_child(col)
 	collision_layer = 2
-	collision_mask = 1 | 4
+	collision_mask = 1 | 4 | 8
 	model = Content.instance_model("tommy", Vector3(0.45, 1.0, 0.35), Color(0.2, 0.45, 0.9))
 	add_child(model)
 	rig = AnimRig.new(model)
@@ -134,6 +135,11 @@ func _physics_process(dt: float) -> void:
 	global_position.y = max(global_position.y, 0.0)
 	# animation
 	var big := is_big(held())
+	if speed > 0.05:
+		_step_t -= dt * speed
+		if _step_t <= 0.0:
+			_step_t = 0.8
+			Sfx.play("step_grass_%d" % randi_range(1, 3), 0.1, -6.0)
 	if speed > WALK + 0.1:
 		rig.loop("run", speed / RUN)
 	elif speed > 0.05:
@@ -229,6 +235,7 @@ func _do_action() -> void:
 			return
 		face_towards(target.interact_point() if target.has_method("interact_point") else target.global_position)
 		target.interact(self, target_info)
+		_clear_target()
 		return
 	match target_info.get("verb", ""):
 		"place":
@@ -241,6 +248,11 @@ func _do_action() -> void:
 				var id := take_held()
 				anim_once("give")
 				w.throw_item(id, global_position + Vector3(0, 0.7, 0), forward())
+
+func _clear_target() -> void:
+	target = null
+	target_info = {}
+	target_changed.emit({})
 
 func _refresh_held() -> void:
 	if held_node:

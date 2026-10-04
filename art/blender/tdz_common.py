@@ -56,6 +56,8 @@ def args():
 
 def reset():
     bpy.ops.wm.read_factory_settings(use_empty=True)
+    _mats.clear()   # cached materials die with the old scene
+    bpy.context.scene.render.fps = 30
     for c in (bpy.data.meshes, bpy.data.materials, bpy.data.armatures,
               bpy.data.actions, bpy.data.objects):
         for x in list(c):

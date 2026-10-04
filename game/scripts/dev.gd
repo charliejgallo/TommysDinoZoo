@@ -22,6 +22,8 @@ func _ready() -> void:
 			_shot = a.substr(7)
 		elif a.begins_with("--shot-after="):
 			_after = float(a.substr(13))
+		elif a.begins_with("--shot-after-keys="):
+			_after = 99999.0
 		elif a.begins_with("--scene="):
 			get_tree().change_scene_to_file.call_deferred(a.substr(8))
 		elif a.begins_with("--keys="):
@@ -56,6 +58,8 @@ func _run_keys(dt: float) -> void:
 		_step_t -= dt
 		return
 	if _steps.is_empty():
+		if _shot != "" and arg("shot-after-keys") != "" and _after > 1000.0:
+			_after = _t + float(arg("shot-after-keys"))
 		return
 	var st: String = _steps.pop_front()
 	var parts := st.split(":")

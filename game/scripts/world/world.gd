@@ -27,6 +27,16 @@ var _fences_root: Node3D
 var _noise_tex: NoiseTexture2D
 var _sleeping := false
 var menus: Menus
+var _ground_img: Image
+var _ground_tex: ImageTexture
+var _ground_origin := Vector2.ZERO
+
+func _repaint_ground() -> void:
+	for iy in _ground_img.get_height():
+		for ix in _ground_img.get_width():
+			var p := _ground_origin + Vector2((ix + 0.5) / PX_PER_M, (iy + 0.5) / PX_PER_M)
+			_ground_img.set_pixel(ix, iy, _ground_color(p))
+	_ground_tex.update(_ground_img)
 
 func _check_menu() -> void:
 	if Controls.pressed(0, "menu") and not menus.is_open() and not _sleeping:
@@ -58,6 +68,7 @@ func _ready() -> void:
 	_dinos_root = _child("Dinos")
 	_items_root = _child("Items")
 	_fences_root = _child("Fences")
+	_pond_setup()
 	_build_ground()
 	_build_water()
 	cam = Camera3D.new()
@@ -138,6 +149,9 @@ func _ground_color(p: Vector2) -> Color:
 		c = hc if is_zone_open(z) else hc.lerp(GROUND_COLORS.locked, 0.55)
 	elif not bounds.has_point(p):
 		c = GROUND_COLORS.border
+	var wd := pond_dist(p)
+	if wd < 1.2:
+		c = c.lerp(Color("#ecd9a6"), 1.0 - smoothstep(0.4, 1.2, wd))
 	var pd := _path_dist(p)
 	if pd < 1.3:
 		c = c.lerp(GROUND_COLORS.path, 1.0 - smoothstep(0.85, 1.25, pd))
@@ -148,7 +162,11 @@ func _height(p: Vector2) -> float:
 	var dx: float = max(bounds.position.x - p.x, p.x - bounds.end.x, 0.0)
 	var dz: float = max(bounds.position.y - p.y, p.y - bounds.end.y, 0.0)
 	var d := Vector2(dx, dz).length()
-	return pow(d, 1.35) * 0.35
+	var h := pow(d, 1.35) * 0.35
+	var wd := pond_dist(p)
+	if wd < 0.5:
+		h -= 0.7 * smoothstep(0.5, -2.0, wd)
+	return h
 
 const PX_PER_M := 3
 
@@ -165,7 +183,10 @@ func _build_ground() -> void:
 		for ix in img.get_width():
 			var p := Vector2(x0 + (ix + 0.5) / PX_PER_M, z0 + (iy + 0.5) / PX_PER_M)
 			img.set_pixel(ix, iy, _ground_color(p))
+	_ground_img = img
+	_ground_origin = Vector2(x0, z0)
 	var tex := ImageTexture.create_from_image(img)
+	_ground_tex = tex
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	for iz in nz + 1:
@@ -215,22 +236,68 @@ func _build_ground() -> void:
 			3: w.position = Vector3(bounds.end.x + 0.5, 2, cz)
 		add_child(w)
 
+var pond_center := Vector2.ZERO
+var pond_radii := Vector2.ONE
+
+func _pond_setup() -> void:
+	var lag: Rect2 = zones.lagoon.rect
+	pond_center = lag.get_center() + Vector2(3, -3)
+	pond_radii = Vector2(lag.size.x * 0.24, lag.size.y * 0.19)
+
+## 0 at the pond's edge, < 0 inside, > 0 outside (in metres, roughly)
+func pond_dist(p: Vector2) -> float:
+	var q := (p - pond_center) / pond_radii
+	return (q.length() - 1.0) * min(pond_radii.x, pond_radii.y)
+
 func _build_water() -> void:
 	# the lagoon's pond (shown even before it opens: it's pretty)
-	var lag: Rect2 = zones.lagoon.rect
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var n := 48
+	var pts := PackedVector3Array()
+	for i in n:
+		var a := TAU * i / n
+		var wob := 1.0 + sin(a * 3.0) * 0.05 + sin(a * 5.0 + 1.0) * 0.03
+		pts.append(Vector3(cos(a) * pond_radii.x * wob, 0, sin(a) * pond_radii.y * wob))
+	for i in n:
+		st.set_normal(Vector3.UP)
+		st.add_vertex(Vector3.ZERO)
+		st.add_vertex(pts[i])
+		st.add_vertex(pts[(i + 1) % n])
 	var pond := MeshInstance3D.new()
-	var pm := PlaneMesh.new()
-	pm.size = Vector2(lag.size.x * 0.55, lag.size.y * 0.45)
-	pond.mesh = pm
-	pond.position = Vector3(lag.get_center().x + 2, 0.03, lag.get_center().y - 2)
+	pond.mesh = st.commit()
+	pond.position = Vector3(pond_center.x, -0.08, pond_center.y)
 	var wm := ShaderMaterial.new()
 	wm.shader = preload("res://shaders/water.gdshader")
 	wm.set_shader_parameter("noise_tex", _noise_tex)
 	pond.material_override = wm
 	add_child(pond)
+	# Tommy can't walk on water (layer 8; swimmers ignore it)
+	var sb := StaticBody3D.new()
+	sb.collision_layer = 8
+	var cs := CollisionShape3D.new()
+	var shape := ConvexPolygonShape3D.new()
+	var hull := PackedVector3Array()
+	for p in pts:
+		hull.append(p * 0.92)
+		hull.append(p * 0.92 + Vector3(0, 2, 0))
+	shape.points = hull
+	cs.shape = shape
+	sb.add_child(cs)
+	pond.add_child(sb)
 
 func is_zone_open(z: String) -> bool:
 	return z in open_zones
+
+func open_zone(z: String) -> void:
+	if z in open_zones:
+		return
+	open_zones.append(z)
+	_build_fences()
+	_repaint_ground()
+	Sfx.play("mission")
+	toast(tr("land.opened") % tr("habitat." + z), "star")
+	Game.count("lands")
 
 func _build_fences() -> void:
 	for c in _fences_root.get_children():
@@ -265,8 +332,8 @@ func _build_fences() -> void:
 			sb.add_child(cs)
 			n.add_child(sb)
 		if not is_zone_open(zid):
-			var sign := Content.instance_model("prop_sign", Vector3(0.6, 0.9, 0.1), Color(0.9, 0.75, 0.5))
-			sign.position = Vector3(gate.x, 0, gate.y) + _outward(zid) * 1.2
+			var sign := SaleSign.new()
+			sign.setup(zid, Vector3(gate.x, 0, gate.y) + _outward(zid) * 1.2)
 			_fences_root.add_child(sign)
 
 func _outward(zid: String) -> Vector3:
@@ -418,11 +485,80 @@ func _refresh_plot(plot: Prop) -> void:
 
 # ---------------------------------------------------------------- frame
 
+var _music_mode := ""
+
+func _music_for_hour() -> String:
+	var h := Game.hour
+	if h < 10.0: return "morning"
+	if h < 16.5: return "day"
+	if h < 19.5: return "evening"
+	return "night"
+
+func _update_music() -> void:
+	var want := _music_for_hour()
+	if menus and menus.is_open() and menus.shop_open:
+		want = "shop"
+	if _sleeping:
+		return
+	if want != _music_mode:
+		_music_mode = want
+		Music.play(want, 3.0)
+
 func _process(dt: float) -> void:
 	_check_menu()
+	_update_music()
 	_update_camera(dt)
 	_update_daylight()
 	_update_occluders(dt)
+	_update_guide(dt)
+
+var _guide: Node3D
+var _guide_t := 0.0
+
+## A soft golden arrow at Tommy's feet pointing to the dino that most needs
+## care, when it's far away (Settings: guide arrow).
+func _update_guide(dt: float) -> void:
+	if _guide == null:
+		_guide = Node3D.new()
+		var mi := MeshInstance3D.new()
+		# a flat rounded arrow lying on the grass, pointing -Z
+		var st := SurfaceTool.new()
+		st.begin(Mesh.PRIMITIVE_TRIANGLES)
+		var pts := [Vector3(0, 0, -0.32), Vector3(0.26, 0, 0.0), Vector3(0.1, 0, 0.0),
+			Vector3(0.1, 0, 0.22), Vector3(-0.1, 0, 0.22), Vector3(-0.1, 0, 0.0), Vector3(-0.26, 0, 0.0)]
+		for t in [[0, 1, 6], [2, 3, 4], [2, 4, 5]]:
+			for i in t:
+				st.set_normal(Vector3.UP)
+				st.add_vertex(pts[i])
+		mi.mesh = st.commit()
+		var m := StandardMaterial3D.new()
+		m.albedo_color = Color(1.0, 0.82, 0.3)
+		m.emission_enabled = true
+		m.emission = Color(1.0, 0.75, 0.2)
+		m.emission_energy_multiplier = 0.6
+		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		m.cull_mode = BaseMaterial3D.CULL_DISABLED
+		mi.material_override = m
+		mi.position = Vector3(0, 0, -0.95)
+		_guide.add_child(mi)
+		add_child(_guide)
+	_guide_t += dt
+	var target: Node3D = null
+	if Game.settings.guide_arrow and not players.is_empty():
+		var worst := 0.35
+		for d in _dinos_root.get_children():
+			var lo: float = d.needs[d.lowest_need()]
+			if lo < worst and d.state != "sleep":
+				worst = lo
+				target = d
+	var show := target != null and target.global_position.distance_to(players[0].global_position) > 5.0
+	_guide.visible = show
+	if show:
+		var p := players[0].global_position
+		_guide.global_position = p + Vector3(0, 0.06, 0)
+		_guide.scale = Vector3.ONE * (1.0 + sin(_guide_t * 5.0) * 0.08)
+		var d := target.global_position - p
+		_guide.rotation.y = atan2(-d.x, -d.z)
 
 ## Tall things between the camera and Tommy fade out (dithered) so he is
 ## never lost behind the house or a tree.
@@ -442,8 +578,12 @@ func _update_occluders(dt: float) -> void:
 		var behind: bool = seg.distance_to(c) < r + h * 0.25 and p.global_position.z > tgt.z - 0.5
 		p.set_fade(move_toward(p.fade, 0.7 if behind else 0.0, dt * 3.0))
 
+var cam_zoom := 1.0
+
 func _snap_camera() -> void:
+	cam_zoom = float(Dev.arg("zoom", "1"))
 	Stage.place_camera(cam, _cam_target())
+	cam.global_position = _cam_target() + Stage.cam_offset() * cam_zoom
 
 func _cam_target() -> Vector3:
 	var c := Vector3.ZERO
@@ -456,27 +596,30 @@ func _cam_target() -> Vector3:
 	return c
 
 func _update_camera(dt: float) -> void:
-	var want := _cam_target() + Stage.cam_offset()
+	var want := _cam_target() + Stage.cam_offset() * cam_zoom
 	cam.global_position = cam.global_position.lerp(want, 1.0 - exp(-4.0 * dt))
 
 func _update_daylight() -> void:
 	var h := Game.hour
-	# sun travels east to west from 6 to 20; low and orange at the ends
+	# sun travels east to west from 6 to 20; at night a high cool "moon"
+	# takes over so shadows stay short and soft
 	var t: float = clamp((h - 6.0) / 14.0, 0.0, 1.0)
-	var elev: float = sin(t * PI) * 62.0 + 8.0
-	sun.rotation_degrees = Vector3(-elev, lerp(-80.0, 80.0, t) + 180.0 - 35.0, 0)
+	var elev: float = sin(t * PI) * 58.0 + 14.0
+	var yaw: float = lerp(-70.0, 70.0, t) + 145.0
+	var night_amt: float = smoothstep(19.3, 20.8, h)
+	var sun_rot := Vector3(-elev, yaw, 0)
+	var moon_rot := Vector3(-55.0, 160.0, 0)
+	sun.rotation_degrees = sun_rot.lerp(moon_rot, night_amt)
 	var day := Color(1.0, 0.96, 0.88)
-	var gold := Color(1.0, 0.7, 0.45)
-	var night := Color(0.55, 0.62, 1.0)
-	var night_amt: float = smoothstep(19.0, 21.0, h)
-	var warm: float = max(1.0 - smoothstep(6.0, 8.0, h), smoothstep(17.0, 19.5, h))
-	var c := day.lerp(gold, warm).lerp(night, night_amt)
-	sun.light_color = c
-	sun.light_energy = lerp(1.0, 0.35, night_amt)
-	env.ambient_light_energy = lerp(0.3, 0.55, night_amt)
-	sky_mat.sky_top_color = Color(0.42, 0.66, 0.95).lerp(Color(0.95, 0.55, 0.45), warm * 0.5).lerp(Color(0.1, 0.13, 0.3), night_amt)
-	sky_mat.sky_horizon_color = Color(0.82, 0.9, 0.97).lerp(Color(1.0, 0.75, 0.55), warm * 0.7).lerp(Color(0.25, 0.25, 0.45), night_amt)
-	env.ambient_light_color = Color(0.8, 0.85, 1.0).lerp(Color(0.45, 0.5, 0.85), night_amt)
+	var gold := Color(1.0, 0.72, 0.48)
+	var moon := Color(0.55, 0.65, 1.0)
+	var warm: float = max(1.0 - smoothstep(6.0, 8.0, h), smoothstep(16.5, 19.0, h) * (1.0 - night_amt))
+	sun.light_color = day.lerp(gold, warm).lerp(moon, night_amt)
+	sun.light_energy = lerp(1.0, 0.28, night_amt)
+	env.ambient_light_energy = lerp(0.3, 0.42, night_amt)
+	sky_mat.sky_top_color = Color(0.42, 0.66, 0.95).lerp(Color(0.95, 0.55, 0.45), warm * 0.5).lerp(Color(0.08, 0.1, 0.26), night_amt)
+	sky_mat.sky_horizon_color = Color(0.82, 0.9, 0.97).lerp(Color(1.0, 0.75, 0.55), warm * 0.7).lerp(Color(0.2, 0.2, 0.4), night_amt)
+	env.ambient_light_color = Color(0.8, 0.85, 1.0).lerp(Color(0.3, 0.36, 0.7), night_amt)
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR if night_amt > 0.0 else Environment.AMBIENT_SOURCE_SKY
 	var lamps: float = smoothstep(18.5, 19.5, h)
 	for p in _props_root.get_children():
@@ -526,6 +669,7 @@ func fx_sparkles(at: Vector3) -> void:
 func fx_text(at: Vector3, key: String) -> void:
 	var l := Label3D.new()
 	l.text = tr("fx." + key)
+	l.font = UiTheme.get_theme().default_font
 	l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	l.no_depth_test = true
 	l.font_size = 48
@@ -584,6 +728,8 @@ func _on_day_ended() -> void:
 	await get_tree().create_timer(1.6).timeout
 	var summary := _close_day()
 	Game.save_game()
+	Music.play("summary", 1.5)
+	_music_mode = "summary"
 	hud.show_day_summary(summary)
 	await hud.summary_closed
 	_sleeping = false
@@ -609,9 +755,12 @@ func _close_day() -> Dictionary:
 		if p.def.get("incubator", false) and p.state.get("egg", "") != "":
 			var sp: String = p.state.egg.substr(4)
 			p.state = {}
+			p.update_incubator_look()
 			var nd := spawn_dino({"species": sp, "age": "baby", "name": _suggest_name(sp),
 				"pos": [p.position.x + 1.0, p.position.z + 1.2],
 				"habitat": Content.dinos.get(sp, {}).get("habitat", "meadow")})
+			nd.set_meta("unnamed", true)
+			Sfx.play("hatch")
 			s.hatched.append([nd.dino_name, sp])
 		if p.def.get("plot", false) and p.state.get("crop", "") != "":
 			if int(p.state.get("watered", 0)) == Game.day:
@@ -620,7 +769,24 @@ func _close_day() -> Dictionary:
 	return s
 
 func _morning() -> void:
-	pass
+	for d in _dinos_root.get_children():
+		if d.has_meta("unnamed"):
+			d.remove_meta("unnamed")
+			var picks := []
+			while picks.size() < 3:
+				var n := _suggest_name(d.species)
+				if not (n in picks):
+					picks.append(n)
+			_snap_camera()
+			await get_tree().create_timer(0.6).timeout
+			var done := [false]
+			menus.show_naming(d.species, picks, func(nm):
+				d.dino_name = nm
+				done[0] = true
+				toast(tr("toast.welcome") % nm, "heart"))
+			while not done[0]:
+				await get_tree().process_frame
+			get_tree().paused = false
 
 func _suggest_name(sp: String) -> String:
 	var names := tr("names.suggest").split(",")
@@ -650,6 +816,8 @@ func load_state(d: Dictionary) -> void:
 	if d.is_empty():
 		d = {"props": map.props, "dinos": map.dinos, "items": map.items, "open": ["meadow"]}
 	open_zones.assign(d.get("open", ["meadow"]))
+	if _ground_img:
+		_repaint_ground()
 	_uid = int(d.get("uid", 1))
 	for e in d.props:
 		var st: Dictionary = e[4] if e.size() > 4 else {}

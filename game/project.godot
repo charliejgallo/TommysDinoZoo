@@ -17,6 +17,7 @@ Game="*res://scripts/core/game.gd"
 Sfx="*res://scripts/core/sfx.gd"
 Icons="*res://scripts/core/icons.gd"
 Missions="*res://scripts/core/missions.gd"
+Music="*res://scripts/core/music.gd"
 
 [display]
 

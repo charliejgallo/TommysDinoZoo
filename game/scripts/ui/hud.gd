@@ -54,6 +54,7 @@ func _ready() -> void:
 	_root = Control.new()
 	_root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_root.theme = UiTheme.get_theme()
 	add_child(_root)
 	_build_slots()
 	_build_top()
@@ -180,7 +181,7 @@ func _process(_dt: float) -> void:
 	clock_icon.texture = Icons.get_icon("moon" if Game.hour >= 19.5 else "sun")
 	_place_prompt()
 	if summary and summary.visible:
-		if Input.is_action_just_pressed("ui_accept"):
+		if Input.is_action_just_pressed("ui_accept") or Controls.pressed(0, "a"):
 			_close_summary()
 
 func _refresh_slots() -> void:
@@ -268,7 +269,7 @@ func show_day_summary(s: Dictionary) -> void:
 	for g in s.grew:
 		vb.add_child(_line("star", tr("summary.grew") % [g[0], tr("age." + g[2])]))
 	for h in s.hatched:
-		vb.add_child(_line("egg", tr("summary.hatched") % [Content.dino_name(h[1]), h[0]]))
+		vb.add_child(_line("egg", tr("summary.hatched") % Content.dino_name(h[1])))
 	var best := _best_moment(s.today)
 	if best != "":
 		vb.add_child(_line("sparkle", best))

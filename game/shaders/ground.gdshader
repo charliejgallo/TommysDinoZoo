@@ -29,5 +29,9 @@ void light() {
 	float ndl = dot(NORMAL, LIGHT);
 	float band = smoothstep(0.0, band_soft, ndl) * ATTENUATION;
 	vec3 l = mix(shade_tint * shade, vec3(1.0), band);
+	if (!LIGHT_IS_DIRECTIONAL) {
+		// lamps: soft falloff, no shade-band floor outside their reach
+		l = vec3(smoothstep(-0.2, 0.4, ndl)) * ATTENUATION;
+	}
 	DIFFUSE_LIGHT += l * LIGHT_COLOR * ALBEDO / PI;
 }
