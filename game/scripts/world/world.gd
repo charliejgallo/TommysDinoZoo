@@ -401,7 +401,7 @@ func place_prop_from(p: Player) -> bool:
 			toast(tr("toast.no_room"), "place")
 			return false
 	p.take_held()
-	spawn_prop(id, cell)
+	spawn_prop(id, cell, 0, {"mine": true})
 	Sfx.play("place")
 	return true
 
