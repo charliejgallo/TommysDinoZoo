@@ -1,0 +1,11 @@
+# Godot
+game/.godot/
+game/export_presets.cfg.local
+*.translation
+# builds
+dist/
+build/
+# Blender
+*.blend1
+__pycache__/
+.DS_Store

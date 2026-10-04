@@ -1,0 +1,480 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Language: es\n"
+"X-Language-Name: Español\n"
+
+msgid "pack.base"
+msgstr "Granja base"
+
+msgid "hud.day"
+msgstr "Día"
+
+msgid "verb.pet"
+msgstr "Acariciar"
+
+msgid "verb.feed"
+msgstr "Dar de comer"
+
+msgid "verb.offer"
+msgstr "Convidar"
+
+msgid "verb.brush"
+msgstr "Cepillar"
+
+msgid "verb.play"
+msgstr "Jugar"
+
+msgid "verb.photo"
+msgstr "Sacar foto"
+
+msgid "verb.pickup"
+msgstr "Agarrar"
+
+msgid "verb.scoop"
+msgstr "Juntar caca"
+
+msgid "verb.need_shovel"
+msgstr "Necesitás la pala"
+
+msgid "verb.hands_full"
+msgstr "Manos llenas"
+
+msgid "verb.fill"
+msgstr "Llenar"
+
+msgid "verb.incubate"
+msgstr "Poner el huevo"
+
+msgid "verb.look_egg"
+msgstr "Mirar el huevo"
+
+msgid "verb.harvest"
+msgstr "Cosechar"
+
+msgid "verb.shake"
+msgstr "Sacudir"
+
+msgid "verb.plant"
+msgstr "Plantar"
+
+msgid "verb.water"
+msgstr "Regar"
+
+msgid "verb.missions"
+msgstr "Misiones"
+
+msgid "verb.sleep"
+msgstr "Ir a dormir"
+
+msgid "verb.shop"
+msgstr "Tienda"
+
+msgid "verb.place"
+msgstr "Ubicar"
+
+msgid "verb.throw"
+msgstr "Tirar"
+
+msgid "toast.heart_up"
+msgstr "¡%s te quiere más!"
+
+msgid "toast.egg_in"
+msgstr "¡El huevo está calentito! Mañana nace."
+
+msgid "toast.egg_wait"
+msgstr "Todavía duerme... mañana sale."
+
+msgid "toast.hands_full"
+msgstr "¡Tenés las manos llenas!"
+
+msgid "toast.no_room"
+msgstr "Acá no entra"
+
+msgid "toast.dusk"
+msgstr "Se está haciendo de noche..."
+
+msgid "toast.soon"
+msgstr "¡Muy pronto!"
+
+msgid "toast.too_early"
+msgstr "¡Todavía es de día! Hay mucho para hacer."
+
+msgid "fx.nope"
+msgstr "mmm, no"
+
+msgid "summary.title"
+msgstr "Fin del día %d"
+
+msgid "summary.happy"
+msgstr "Dinos felices: %d de %d"
+
+msgid "summary.coins"
+msgstr "Monedas ganadas: %d"
+
+msgid "summary.grew"
+msgstr "¡%s creció! Ahora es %s"
+
+msgid "summary.hatched"
+msgstr "¡Nació un bebé %s! Se llama %s"
+
+msgid "summary.pets"
+msgstr "%s recibió %d mimos"
+
+msgid "summary.bye"
+msgstr "¡Hasta mañana!"
+
+msgid "summary.continue"
+msgstr "Apretá %s para seguir"
+
+msgid "age.baby"
+msgstr "bebé"
+
+msgid "age.juv"
+msgstr "joven"
+
+msgid "age.adult"
+msgstr "adulto"
+
+msgid "names.suggest"
+msgstr "Trici,Coco,Pipo,Luna,Rocco,Mimi,Bongo,Kiwi,Toti,Nube,Pancho,Lola,Chispa,Mora"
+
+msgid "dino.trike"
+msgstr "Triceratops"
+
+msgid "dino.stego"
+msgstr "Estegosaurio"
+
+msgid "dino.ankylo"
+msgstr "Anquilosaurio"
+
+msgid "dino.brachio"
+msgstr "Braquiosaurio"
+
+msgid "dino.parasaur"
+msgstr "Parasaurolofo"
+
+msgid "dino.pachy"
+msgstr "Paquicefalosaurio"
+
+msgid "dino.iguanodon"
+msgstr "Iguanodonte"
+
+msgid "dino.proto"
+msgstr "Protoceratops"
+
+msgid "dino.galli"
+msgstr "Gallimimus"
+
+msgid "dino.therizino"
+msgstr "Therizinosaurio"
+
+msgid "dino.trex"
+msgstr "Tiranosaurio Rex"
+
+msgid "dino.raptor"
+msgstr "Velociraptor"
+
+msgid "dino.spino"
+msgstr "Espinosaurio"
+
+msgid "dino.dilo"
+msgstr "Dilofosaurio"
+
+msgid "dino.carno"
+msgstr "Carnotauro"
+
+msgid "dino.compy"
+msgstr "Compsognathus"
+
+msgid "dino.microraptor"
+msgstr "Microraptor"
+
+msgid "dino.ptera"
+msgstr "Pteranodon"
+
+msgid "dino.archaeo"
+msgstr "Arqueoptérix"
+
+msgid "dino.plesio"
+msgstr "Plesiosaurio"
+
+msgid "item.fern"
+msgstr "Helecho"
+
+msgid "item.leaves"
+msgstr "Hojas"
+
+msgid "item.berries"
+msgstr "Bayas"
+
+msgid "item.apple"
+msgstr "Manzana"
+
+msgid "item.pumpkin"
+msgstr "Zapallo"
+
+msgid "item.roots"
+msgstr "Zanahorias"
+
+msgid "item.seeds_bag"
+msgstr "Semillitas"
+
+msgid "item.water_plants"
+msgstr "Plantas de agua"
+
+msgid "item.bugs"
+msgstr "Bichitos"
+
+msgid "item.fish"
+msgstr "Pescado"
+
+msgid "item.kibble"
+msgstr "Croquetas"
+
+msgid "item.watering_can"
+msgstr "Regadera"
+
+msgid "item.brush"
+msgstr "Cepillo"
+
+msgid "item.shovel"
+msgstr "Pala"
+
+msgid "item.ball"
+msgstr "Pelota"
+
+msgid "item.camera"
+msgstr "Cámara"
+
+msgid "item.rod"
+msgstr "Caña de pescar"
+
+msgid "item.seed_fern"
+msgstr "Semillas de helecho"
+
+msgid "item.seed_berry"
+msgstr "Semillas de bayas"
+
+msgid "item.seed_pumpkin"
+msgstr "Semillas de zapallo"
+
+msgid "item.seed_carrot"
+msgstr "Semillas de zanahoria"
+
+msgid "item.poop"
+msgstr "Caca de dino"
+
+msgid "habitat.meadow"
+msgstr "Pradera"
+
+msgid "habitat.forest"
+msgstr "Bosque alto"
+
+msgid "habitat.lagoon"
+msgstr "Laguna"
+
+msgid "habitat.canyon"
+msgstr "Cañón"
+
+msgid "habitat.cliff"
+msgstr "Acantilado"
+
+msgid "habitat.rexvalley"
+msgstr "Valle Rex"
+
+msgid "menu.play"
+msgstr "Jugar"
+
+msgid "menu.settings"
+msgstr "Ajustes"
+
+msgid "menu.quit"
+msgstr "Salir"
+
+msgid "menu.choose_farm"
+msgstr "Elegí tu granja"
+
+msgid "menu.new_farm"
+msgstr "Granja nueva"
+
+msgid "menu.slot_info"
+msgstr "Día %d · %d dinos · %d monedas"
+
+msgid "menu.pause"
+msgstr "Pausa"
+
+msgid "menu.resume"
+msgstr "Seguir jugando"
+
+msgid "menu.save_quit"
+msgstr "Guardar y salir"
+
+msgid "menu.back"
+msgstr "Volver"
+
+msgid "set.day_length"
+msgstr "Duración del día"
+
+msgid "set.minutes"
+msgstr "%d min"
+
+msgid "set.language"
+msgstr "Idioma"
+
+msgid "set.music"
+msgstr "Música"
+
+msgid "set.sfx"
+msgstr "Sonidos"
+
+msgid "set.guide"
+msgstr "Flecha guía"
+
+msgid "set.fullscreen"
+msgstr "Pantalla completa"
+
+msgid "set.on"
+msgstr "Sí"
+
+msgid "set.off"
+msgstr "No"
+
+msgid "set.parents"
+msgstr "Para padres: hoy jugó %d min"
+
+msgid "menu.missions"
+msgstr "Misiones de hoy"
+
+msgid "menu.shop"
+msgstr "Tienda"
+
+msgid "toast.mission_done"
+msgstr "¡Misión cumplida! +%d monedas"
+
+msgid "toast.no_coins"
+msgstr "No te alcanzan las monedas"
+
+msgid "toast.on_ground"
+msgstr "Lo dejé en el piso, al lado tuyo"
+
+msgid "shop.food"
+msgstr "Comida"
+
+msgid "shop.seeds"
+msgstr "Semillas"
+
+msgid "shop.tools"
+msgstr "Herramientas"
+
+msgid "shop.eggs"
+msgstr "Huevos"
+
+msgid "shop.furniture"
+msgstr "Cosas"
+
+msgid "shop.coins"
+msgstr "Tenés %d monedas"
+
+msgid "shop.egg"
+msgstr "Huevo de %s"
+
+msgid "shop.empty"
+msgstr "Por ahora no hay nada acá"
+
+msgid "mission.pet"
+msgstr "Acariciá dinos %d veces"
+
+msgid "mission.feed"
+msgstr "Dales de comer en la mano %d veces"
+
+msgid "mission.scoop"
+msgstr "Juntá %d cacas con la pala"
+
+msgid "mission.brush"
+msgstr "Cepillá dinos %d veces"
+
+msgid "mission.harvest"
+msgstr "Cosechá %d veces"
+
+msgid "mission.plant"
+msgstr "Plantá %d semillas"
+
+msgid "mission.fill"
+msgstr "Llená el comedero %d veces"
+
+msgid "mission.play"
+msgstr "Jugá a la pelota %d veces"
+
+msgid "mission.feed_dino"
+msgstr "Dale de comer %d veces a un %s"
+
+msgid "mission.pet_dino"
+msgstr "Acariciá %d veces a un %s"
+
+msgid "prop.fence"
+msgstr "Cerca"
+
+msgid "prop.gate"
+msgstr "Tranquera"
+
+msgid "prop.tree_round"
+msgstr "Árbol"
+
+msgid "prop.tree_fruit"
+msgstr "Manzano"
+
+msgid "prop.palm"
+msgstr "Palmera"
+
+msgid "prop.fern_clump"
+msgstr "Helechos"
+
+msgid "prop.bush"
+msgstr "Arbusto"
+
+msgid "prop.berry_bush"
+msgstr "Arbusto de bayas"
+
+msgid "prop.flowers"
+msgstr "Flores"
+
+msgid "prop.rock"
+msgstr "Piedra"
+
+msgid "prop.trough"
+msgstr "Comedero"
+
+msgid "prop.water_trough"
+msgstr "Bebedero"
+
+msgid "prop.hay"
+msgstr "Fardo de pasto"
+
+msgid "prop.nest"
+msgstr "Nido"
+
+msgid "prop.incubator"
+msgstr "Incubadora"
+
+msgid "prop.board"
+msgstr "Tablero"
+
+msgid "prop.mailbox"
+msgstr "Buzón"
+
+msgid "prop.lamp"
+msgstr "Farol"
+
+msgid "prop.bench"
+msgstr "Banco"
+
+msgid "prop.garden_plot"
+msgstr "Huerta"
+
+msgid "prop.sign"
+msgstr "Cartel"
+
+msgid "prop.house"
+msgstr "Casa"
+

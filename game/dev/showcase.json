@@ -1,0 +1,407 @@
+{
+ "open": [
+  "meadow",
+  "forest",
+  "rexvalley"
+ ],
+ "uid": 20,
+ "dinos": [
+  {
+   "species": "trike",
+   "age": "adult",
+   "pos": [
+    2.2,
+    -11.5
+   ],
+   "name": "Mam\u00e1 Trici",
+   "needs": {
+    "food": 0.9,
+    "clean": 0.9,
+    "fun": 0.8,
+    "love": 0.9
+   }
+  },
+  {
+   "species": "trike",
+   "age": "juv",
+   "pos": [
+    4.5,
+    -10.0
+   ],
+   "name": "Coco",
+   "needs": {
+    "food": 0.9,
+    "clean": 0.9,
+    "fun": 0.8,
+    "love": 0.9
+   }
+  },
+  {
+   "species": "trike",
+   "age": "baby",
+   "pos": [
+    0.6,
+    -9.4
+   ],
+   "name": "Pipo",
+   "needs": {
+    "food": 0.3,
+    "clean": 0.9,
+    "fun": 0.8,
+    "love": 0.9
+   }
+  },
+  {
+   "species": "raptor",
+   "age": "adult",
+   "pos": [
+    -3.5,
+    -10.5
+   ],
+   "name": "Rayo",
+   "needs": {
+    "food": 0.9,
+    "clean": 0.9,
+    "fun": 0.2,
+    "love": 0.9
+   }
+  },
+  {
+   "species": "trex",
+   "age": "adult",
+   "pos": [
+    -1.0,
+    -16.0
+   ],
+   "name": "Rexi",
+   "habitat": "meadow",
+   "needs": {
+    "food": 0.9,
+    "clean": 0.9,
+    "fun": 0.8,
+    "love": 0.9
+   }
+  },
+  {
+   "species": "brachio",
+   "age": "adult",
+   "pos": [
+    6.0,
+    -18.0
+   ],
+   "name": "Cuellito",
+   "habitat": "meadow",
+   "needs": {
+    "food": 0.9,
+    "clean": 0.9,
+    "fun": 0.8,
+    "love": 0.9
+   }
+  }
+ ],
+ "props": [
+  [
+   "house",
+   7,
+   8.5,
+   0,
+   {}
+  ],
+  [
+   "incubator",
+   3,
+   8.2,
+   0,
+   {
+    "egg": "egg_trike",
+    "since": 1
+   }
+  ],
+  [
+   "board",
+   -2.6,
+   6,
+   0,
+   {}
+  ],
+  [
+   "mailbox",
+   4.4,
+   11.3,
+   0,
+   {}
+  ],
+  [
+   "garden_plot",
+   -8,
+   8,
+   0,
+   {
+    "crop": "pumpkin",
+    "grown": 2,
+    "watered": 1
+   }
+  ],
+  [
+   "garden_plot",
+   -8,
+   11,
+   0,
+   {
+    "crop": "fern",
+    "grown": 0,
+    "watered": 1
+   }
+  ],
+  [
+   "lamp",
+   -1.6,
+   3,
+   0,
+   {}
+  ],
+  [
+   "lamp",
+   1.6,
+   3,
+   0,
+   {}
+  ],
+  [
+   "lamp",
+   -1.6,
+   -2.6,
+   0,
+   {}
+  ],
+  [
+   "lamp",
+   1.6,
+   -2.6,
+   0,
+   {}
+  ],
+  [
+   "bench",
+   -4.5,
+   1,
+   0,
+   {}
+  ],
+  [
+   "tree_fruit",
+   -7,
+   3,
+   0,
+   {}
+  ],
+  [
+   "tree_round",
+   10.5,
+   12.5,
+   0,
+   {}
+  ],
+  [
+   "tree_round",
+   -10.8,
+   12.3,
+   0,
+   {}
+  ],
+  [
+   "flowers",
+   4.6,
+   12.6,
+   0,
+   {}
+  ],
+  [
+   "flowers",
+   9.6,
+   11.6,
+   0,
+   {}
+  ],
+  [
+   "flowers",
+   -1.4,
+   9.5,
+   0,
+   {}
+  ],
+  [
+   "trough",
+   -4,
+   -8,
+   0,
+   {
+    "food": 6,
+    "tag": "fern"
+   }
+  ],
+  [
+   "water_trough",
+   4,
+   -8,
+   0,
+   {}
+  ],
+  [
+   "nest",
+   -6,
+   -18,
+   0,
+   {}
+  ],
+  [
+   "tree_round",
+   7,
+   -17,
+   0,
+   {}
+  ],
+  [
+   "tree_round",
+   -8,
+   -12,
+   0,
+   {}
+  ],
+  [
+   "fern_clump",
+   5,
+   -13,
+   0,
+   {}
+  ],
+  [
+   "fern_clump",
+   6,
+   -12,
+   0,
+   {}
+  ],
+  [
+   "fern_clump",
+   -3,
+   -19,
+   0,
+   {}
+  ],
+  [
+   "berry_bush",
+   8,
+   -6,
+   0,
+   {}
+  ],
+  [
+   "rock",
+   -7,
+   -6,
+   0,
+   {}
+  ],
+  [
+   "hay",
+   2,
+   -19,
+   0,
+   {}
+  ],
+  [
+   "flowers",
+   -2,
+   -6.5,
+   0,
+   {}
+  ],
+  [
+   "flowers",
+   3,
+   -15,
+   0,
+   {}
+  ],
+  [
+   "bush",
+   -9,
+   -20,
+   0,
+   {}
+  ],
+  [
+   "palm",
+   8.5,
+   -20.5,
+   0,
+   {}
+  ],
+  [
+   "rock",
+   4,
+   -20,
+   0,
+   {}
+  ],
+  [
+   "fern_clump",
+   -5,
+   -14,
+   0,
+   {}
+  ],
+  [
+   "lamp",
+   -1.6,
+   -6,
+   0,
+   {}
+  ],
+  [
+   "bench",
+   6.5,
+   -10.5,
+   0,
+   {}
+  ]
+ ],
+ "items": [
+  [
+   "fern",
+   1.2,
+   -7.5
+  ],
+  [
+   "ball",
+   -1.5,
+   -8.6
+  ],
+  [
+   "poop",
+   -5.2,
+   -12.3
+  ],
+  [
+   "brush",
+   2.2,
+   12.6
+  ],
+  [
+   "shovel",
+   1.2,
+   10.8
+  ]
+ ],
+ "players": [
+  {
+   "slots": [
+    "fern",
+    "brush",
+    ""
+   ],
+   "active": 0
+  }
+ ]
+}
