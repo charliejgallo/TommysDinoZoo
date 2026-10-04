@@ -38,7 +38,8 @@ numbers, palette and `parts` (features: horns, frill, beak, spots, stripes,
 feathers, ridge, plates, sail, bump), set `speeds` per age, register it in
 SPECIES and run `--only <id>_baby,<id>_juv,<id>_adult --stats`. Per-species
 animation tweaks go in spec['moves'] (stance, clap, hop, *_speed/_duty/_reach,
-sleep_fwd, sleep_lift); new generic behaviour belongs in Moves.
+sleep_fwd, sleep_lift); new generic behaviour belongs in Moves. A species can
+replace a whole action with spec['anims'] = {name: fn(Moves) -> (secs, gen)}.
 
 Posing works in "semantic" angles: pitch (+ = nose down, about world X),
 yaw (+ = turn to its left, about world Z), roll (+ = top to its left, about

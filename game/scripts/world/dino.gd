@@ -105,6 +105,11 @@ func _build_model() -> void:
 	add_child(model)
 	rig = AnimRig.new(model)
 
+func run_speed() -> float:
+	if def.has("speeds"):
+		return float(def.speeds[AGES.find(age)][1])
+	return float(def.get("run", 2.0)) * (walk_speed() / maxf(float(def.get("walk", 1.0)), 0.1))
+
 func is_swimmer() -> bool:
 	return def.get("kind", "") == "swimmer"
 
@@ -114,6 +119,8 @@ func is_flier() -> bool:
 const SWIM_Y := -0.35
 
 func walk_speed() -> float:
+	if def.has("speeds"):
+		return float(def.speeds[AGES.find(age)][0])
 	var w := float(def.get("walk", 1.0))
 	return w * (0.67 if age == "baby" else (0.83 if age == "juv" else 1.0))
 
@@ -210,7 +217,12 @@ func _think() -> void:
 	if randf() < 0.65:
 		_pick_wander()
 	else:
-		if randf() < 0.3 and rig.has("call"):
+		var extras: Array = def.get("idle_extras", [])
+		if not extras.is_empty() and randf() < 0.35:
+			var ex: String = extras[randi() % extras.size()]
+			if rig.has(ex):
+				rig.once(ex)
+		elif randf() < 0.3 and rig.has("call"):
 			rig.once("call")
 			if _world().players[0].global_position.distance_to(global_position) < 9.0:
 				voice()
@@ -244,9 +256,11 @@ func _walk_to(p: Vector3, dt: float) -> void:
 	var want := atan2(d.x, d.z)
 	_facing = lerp_angle(_facing, want, 1.0 - exp(-6.0 * dt))
 	model.rotation.y = _facing
-	var sp := walk_speed() * (0.6 if mood() < 0.3 else 1.0) * (2.2 if _flying else 1.0)
+	var sp := walk_speed() * (0.6 if mood() < 0.3 else 1.0)
+	if _flying and def.has("fly"):
+		sp = float(def.fly[AGES.find(age)]) * 0.8
 	if _running:
-		sp = float(def.get("run", 2.0)) * (walk_speed() / max(float(def.get("walk", 1.0)), 0.1)) * 0.8
+		sp = run_speed() * 0.8
 		if _goal_node and is_instance_valid(_goal_node) and _goal_node != _ball:
 			_goal = _goal_node.global_position + (global_position - _goal_node.global_position).normalized() * 1.0
 		if _ball and is_instance_valid(_ball) and _ball.carried_by == self:
@@ -256,9 +270,11 @@ func _walk_to(p: Vector3, dt: float) -> void:
 	move_and_slide()
 	global_position.y = _ground_y()
 	if is_flier() and _flying:
-		rig.loop("fly" if rig.has("fly") else "walk")
+		# ptera/microraptor glide on long trips once they're up
+		var glide := rig.has("glide") and _fly_h > 0.9 * float(def.get("fly_h", 1.6)) * 0.6 and fmod(Time.get_ticks_msec() / 1000.0 + uid, 6.0) > 3.5
+		rig.loop("glide" if glide else ("fly" if rig.has("fly") else "walk"))
 	elif _running and rig.has("run"):
-		rig.loop("run")
+		rig.loop("run", sp / run_speed())
 	else:
 		rig.loop("walk", sp / walk_speed())
 	if global_position.distance_to(_last_pos) < sp * dt * 0.3:
@@ -274,7 +290,8 @@ func _ground_y() -> float:
 	if is_swimmer():
 		return SWIM_Y
 	if is_flier():
-		_fly_h = move_toward(_fly_h, 2.2 if _flying else 0.0, get_physics_process_delta_time() * 1.5)
+		var top: float = float(def.get("fly_h", 1.6)) * (0.6 if age == "baby" else (0.8 if age == "juv" else 1.0))
+		_fly_h = move_toward(_fly_h, top if _flying else 0.0, get_physics_process_delta_time() * 1.2)
 		return _fly_h
 	return 0.0
 
@@ -294,6 +311,8 @@ var _running := false
 
 func _arrived(node: Node) -> void:
 	_flying = false
+	if _running and rig.has("skid"):
+		rig.once("skid")
 	_running = false
 	if node is WorldItem and node == _ball:
 		if not is_instance_valid(_ball):

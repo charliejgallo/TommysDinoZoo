@@ -814,9 +814,12 @@ func _close_day() -> Dictionary:
 			var at := habitat_spawn(hab)
 			if Content.dinos.get(sp, {}).get("kind", "") == "swimmer":
 				at = random_point_in_pond(0.3)
-			var nd := spawn_dino({"species": sp, "age": "baby", "name": _suggest_name(sp),
-				"pos": [at.x, at.z], "habitat": hab})
-			nd.set_meta("unnamed", true)
+			# compys come in a little gang
+			var nd: Dino = null
+			for k in int(Content.dinos.get(sp, {}).get("group", 1)):
+				nd = spawn_dino({"species": sp, "age": "baby", "name": _suggest_name(sp),
+					"pos": [at.x + k * 0.5, at.z + (k % 2) * 0.4], "habitat": hab})
+				nd.set_meta("unnamed", true)
 			Sfx.play("hatch")
 			s.hatched.append([nd.dino_name, sp])
 		if p.def.get("plot", false) and p.state.get("crop", "") != "":

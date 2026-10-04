@@ -23,19 +23,19 @@ Who is who (docs/DESIGN.md section 4):
 Walk / run speeds each model was animated for (m/s; root in place, feet
 plant at exactly this speed; the build prints the cycle times):
 
-  model             walk m/s   run m/s
-  iguanodon_baby    0.80       1.80
-  iguanodon_juv     1.00       2.20
-  iguanodon_adult   1.20       2.60
-  parasaur_baby     0.80       2.00
-  parasaur_juv      1.10       2.60
-  parasaur_adult    1.40       3.20
-  therizino_baby    0.70       1.60
-  therizino_juv     0.90       2.00
-  therizino_adult   1.10       2.40
-  galli_baby        0.80       2.60
-  galli_juv         1.30       3.40
-  galli_adult       1.80       4.00
+  model             walk m/s (cycle s)   run m/s (cycle s)
+  iguanodon_baby    0.80 (0.47)          1.80 (0.37)
+  iguanodon_juv     1.00 (0.47)          2.20 (0.40)
+  iguanodon_adult   1.20 (0.60)          2.60 (0.53)
+  parasaur_baby     0.80 (0.43)          2.00 (0.37)
+  parasaur_juv      1.10 (0.50)          2.60 (0.43)
+  parasaur_adult    1.40 (0.63)          3.20 (0.57)
+  therizino_baby    0.70 (0.50)          1.60 (0.47)
+  therizino_juv     0.90 (0.60)          2.00 (0.53)
+  therizino_adult   1.10 (0.77)          2.40 (0.73)
+  galli_baby        0.80 (0.47)          2.60 (0.30)
+  galli_juv         1.30 (0.43)          3.40 (0.33)
+  galli_adult       1.80 (0.50)          4.00 (0.43)
 
 Animations: the 12 of ART-SPEC (idle* walk* run* eat drink sleep* happy
 pet sit* call play sad*) at 30 fps, every bone keyed every frame, plus the
@@ -71,21 +71,6 @@ def _pal(**kw):
 # local feature helpers (registered into DL.FEATURES under bp_* names)
 # ======================================================================
 
-def _tuft(D, mat, base, d, length, width, how, droop=0.12, flat=0.45, nrm=None):
-    """One soft feather tuft: a short tapering, slightly flattened tube
-    from `base` along `d`, the tip drooping down a little."""
-    d = V(d).normalized()
-    m1 = base + d * length * 0.5
-    tip = base + d * length - UP * length * droop
-    if nrm is None:
-        nrm = d.cross(UP)
-        if nrm.length < 1e-4:
-            nrm = V((1, 0, 0))
-        nrm = nrm.normalized().cross(d)
-    D.add(DL.tube('tuft', D.m(mat), [base, m1, tip], [width, width * 0.78, width * 0.16],
-                  seg=6, sub=1, cap='end', flat=[flat, flat, flat], nrm=nrm), how)
-
-
 def f_bp_thumbs(D, size=1.0):
     """Iguanodon thumb spikes on the inner side of each front foot (rigid
     to the foot, so they rise and wave when the paw is lifted)."""
@@ -105,6 +90,70 @@ def f_bp_thumbs(D, size=1.0):
         del to
 
 
+def f_bp_shoulders(D, size=1.3, front_only=False):
+    """Round shoulder / hip balls closing the top of each column leg (so a
+    leg lifted off the ground, e.g. a rearing iguanodon's, has no open end)."""
+    for lg in D.legs:
+        if front_only and not lg['front']:
+            continue
+        r = D.L['leg_r'] * (D.spec.get('fleg_r', 1.0) if lg['front'] else 1.0) * size
+        d = (lg['knee'] - lg['hip']).normalized()
+        D.add(DL.ell('shoulder', D.m('body'), lg['hip'] + d * r * 0.15, (r, r, r * 1.1),
+                     rot=V((0, 0, 1)).rotation_difference(d).to_matrix(), seg=D.lod(14, 10),
+                     rings=D.lod(9, 7)), ('rigid', lg['thigh']))
+
+
+def f_bp_bands(D, n=4, start=0.15, end=0.75, arc=55, width=0.07, tail=3, mat='spots'):
+    """Clean painted bands across the back: thin flat tubes following the
+    torso's cross-section over the top (decal stripes shatter on the narrow
+    biped torsos). start/end = positions from the middle (0) to the rump
+    (1); arc = half-angle of each band round the back; width = fraction of
+    the torso's smallest radius."""
+    L = D.L
+    Ct, (rx, ry, rz) = L['torso_c'], L['torso_r']
+    Rt = DL._rotm(L['torso_rot_deg'])
+    w = width * min(rx, ry, rz) * (1.15 if D.age == 'baby' else 1.0)
+    for i in range(n):
+        f = DL.lerp(start, end, i / max(n - 1, 1))
+        y0 = ry * f
+        k = math.sqrt(max(1 - (y0 / ry) ** 2, 0.05))
+        a_ = arc * (1.0 - 0.25 * f)
+        pts, nrm = [], []
+        for j in range(7):
+            psi = math.radians(90 - a_ + 2 * a_ * j / 6)
+            q = V((rx * k * math.cos(psi), y0, rz * k * math.sin(psi)))
+            nn = V((q.x / rx ** 2, q.y / ry ** 2, q.z / rz ** 2)).normalized()
+            pts.append(Ct + Rt @ (q + nn * w * 0.12))
+            nrm.append(Rt @ nn)
+        tw = [w * (0.55 + 0.45 * math.sin(math.pi * j / 6)) for j in range(7)]
+        D.add(DL.tube('band', D.m(mat), pts, tw, seg=6, sub=2, flat=[0.3] * 7, nrm=nrm[3]),
+              DL._torso_skin(D))
+    # the same bands over the tail
+    tp = L['tail_pts']
+    tr0 = L['tail_r']
+    tip = D.spec['tail'].get('tip', 0.16)
+    fl = D.spec['tail'].get('flat', 0.85)
+    for i in range(tail):
+        f = (i + 1) / (tail + 1.3)
+        kk = f * (len(tp) - 1)
+        j = min(int(kk), len(tp) - 2)
+        c = tp[j].lerp(tp[j + 1], kk - j)
+        d = (tp[j + 1] - tp[j]).normalized()
+        up = (UP - d * d.dot(UP)).normalized()
+        sx = d.cross(up).normalized()
+        n_ = len(tp) - 1
+        # radius of the tail tube here (build_tail: lerp(1, tip, (i/(n-1))**0.9) over n+1 points)
+        r = tr0 * DL.lerp(1.0, tip, ((kk + 1) / (n_ + 1)) ** 0.9) * 1.03
+        a_ = 62
+        pts = []
+        for q in range(7):
+            psi = math.radians(90 - a_ + 2 * a_ * q / 6)
+            pts.append(c + sx * math.cos(psi) * r + up * math.sin(psi) * r * fl)
+        tw = [w * 0.8 * (0.55 + 0.45 * math.sin(math.pi * q / 6)) * (1 - 0.3 * f) for q in range(7)]
+        D.add(DL.tube('tband', D.m(mat), pts, tw, seg=6, sub=2, flat=[0.3] * 7, nrm=up),
+              ('near', ['root'] + D.tail, 4.0, 2))
+
+
 def f_bp_bumps(D, n=6, size=0.22, start=0.1, end=0.85, tail=3, mat='accent'):
     """Round low bumps along the back and tail (iguanodon): like the ridge
     but soft domes."""
@@ -118,8 +167,8 @@ def f_bp_bumps(D, n=6, size=0.22, start=0.1, end=0.85, tail=3, mat='accent'):
         p, nrm = DL.on_ell(V((0, 0, 0)), tr, 0 if f < 0.5 else 180, el)
         p, nrm = Ct + Rt @ p, Rt @ nrm
         s = sz * (0.65 + 0.35 * math.sin(math.pi * f))
-        D.add(DL.ell('bump', D.m(mat), p + nrm * s * 0.1, (s * 0.55, s * 0.75, s * 0.55),
-                     rot=DL.frame(nrm, V((0, 1, 0))), seg=D.lod(10, 8), rings=6), DL._torso_skin(D))
+        D.add(DL.ell('bump', D.m(mat), p + nrm * s * 0.22, (s * 0.55, s * 0.72, s * 0.62),
+                     rot=DL.frame(nrm, V((0, 1, 0))), seg=D.lod(14, 10), rings=D.lod(9, 7)), DL._torso_skin(D))
     pts = L['tail_pts']
     trr = L['tail_r']
     for i in range(tail):
@@ -129,11 +178,11 @@ def f_bp_bumps(D, n=6, size=0.22, start=0.1, end=0.85, tail=3, mat='accent'):
         p = pts[j].lerp(pts[j + 1], k - j)
         r = trr * DL.lerp(1.0, 0.25, f) * D.spec['tail'].get('flat', 0.85)
         s = sz * DL.lerp(0.65, 0.35, f)
-        D.add(DL.ell('tbump', D.m(mat), p + UP * r * 0.82, (s * 0.5, s * 0.7, s * 0.5),
-                     seg=D.lod(10, 8), rings=6), ('near', ['root'] + D.tail, 4.0, 2))
+        D.add(DL.ell('tbump', D.m(mat), p + UP * r * 0.9, (s * 0.5, s * 0.7, s * 0.55),
+                     seg=D.lod(14, 10), rings=D.lod(9, 7)), ('near', ['root'] + D.tail, 4.0, 2))
 
 
-def f_bp_crest(D, length=1.7, r=0.22, el=58, rise=0.42, mat='accent', stripe='spots'):
+def f_bp_crest(D, length=1.7, r=0.22, el=58, rise=0.42, mat='accent'):
     """Parasaurolophus crest: a long rounded tube from the top of the head
     sweeping backwards (length, r = fractions of the mean head radius).
     Babies have a short nub, juveniles a medium one."""
@@ -148,25 +197,15 @@ def f_bp_crest(D, length=1.7, r=0.22, el=58, rise=0.42, mat='accent', stripe='sp
     rr = r * hm * (0.8 + 0.2 * k)
     pts = [b, b + V((0, ln * 0.35, ln * rise * 0.55)), b + V((0, ln * 0.72, ln * rise * 0.85)),
            b + V((0, ln, ln * rise * 0.95))]
-    cr = D.add(DL.tube('crest', D.m(mat), pts, [rr * 1.15, rr, rr * 0.92, rr * 0.82], seg=D.lod(14, 10),
+    D.add(DL.tube('crest', D.m(mat), pts, [rr * 1.15, rr, rr * 0.92, rr * 0.82], seg=D.lod(14, 10),
                        sub=3, cap='end', flat=[0.95, 0.9, 0.85, 0.85], nrm=V((1, 0, 0))), ('rigid', 'head'))
-    if stripe and D.age != 'baby':
-        # two little rings round the crest (like a flute's keys)
-        for f in (0.45, 0.72):
-            j = f * (len(pts) - 1)
-            i0 = min(int(j), len(pts) - 2)
-            c = pts[i0].lerp(pts[i0 + 1], j - i0)
-            d = (pts[i0 + 1] - pts[i0]).normalized()
-            q = V((0, 1, 0)).rotation_difference(d)
-            rad = rr * (0.98 - 0.15 * f)
-            D.add(DL.ell('cring', D.m(stripe), c, (rad * 1.06, rr * 0.16, rad * 0.98), rot=q.to_matrix(),
-                         seg=D.lod(14, 10), rings=6), ('rigid', 'head'))
-    del cr
 
 
-def _puff(D, mat, base, d, length, width, how, out=None, flat=0.7, sink=0.25):
-    """One soft fluff puff: a teardrop ellipsoid lying along `d` (tip end),
-    flattened along `out` (the surface normal), its root sunk into the body."""
+def _puff(D, mat, base, d, length, width, how, out=None, flat=0.75, sink=0.3, seg=16, rings=10):
+    """One soft fluff puff: a smooth teardrop ellipsoid lying along `d` (the
+    pointed end), flattened along `out` (the surface normal), its root
+    sunk into the body."""
+    from mathutils import Matrix
     y = V(d).normalized()
     o = V(out) if out is not None else UP
     z = o - y * o.dot(y)
@@ -174,28 +213,26 @@ def _puff(D, mat, base, d, length, width, how, out=None, flat=0.7, sink=0.25):
         z = V((1, 0, 0)) - y * y.x
     z.normalize()
     x = y.cross(z)
-    from mathutils import Matrix
     Rm = Matrix((x, y, z)).transposed()
 
     def tear(u):
-        k = 1.0 - 0.5 * max(u.y, 0.0) ** 1.5
+        k = 1.0 - 0.38 * max(u.y, 0.0) ** 2
         u.x *= k
         u.z *= k
         return u
     c = base + y * length * (0.5 - sink * 0.5)
     D.add(DL.ell('puff', D.m(mat), c, (width, length * 0.5, width * flat), rot=Rm,
-                 seg=8, rings=6, deform=tear), how)
+                 seg=D.lod(seg, 10), rings=D.lod(rings, 7), deform=tear), how)
 
 
-def f_bp_fluff(D, ruff=10, back=6, arms=2, thighs=2, tail=5, crest=3, mat='accent', mat2='body'):
-    """Therizinosaur fluff: soft puffs in a mane round the neck base, down
-    the back, fringes on the arms, fluffy 'trousers' on the thighs, a plume
-    at the tail tip and a tuft on the head."""
+def f_bp_fluff(D, mane=7, back=2, mat='accent'):
+    """Therizinosaur fluff: a few big soft puffs (a mane round the neck base
+    running down the back, elbow and thigh fringes, a pom-pom tail and a
+    head tuft) - few and round so they read as fluff, not spikes."""
     L = D.L
-    k = 1.0 if D.age != 'baby' else 1.12
-    if D.age == 'baby':
-        ruff, back, tail, thighs = 7, 3, 4, 1
-    # mane round the neck base (skip the throat)
+    baby = D.age == 'baby'
+    if baby:
+        mane, back = 5, 1
     pts = L['neck_pts']
     nr = L['neck_r']
     d = (pts[1] - pts[0]).normalized()
@@ -203,76 +240,56 @@ def f_bp_fluff(D, ruff=10, back=6, arms=2, thighs=2, tail=5, crest=3, mat='accen
     bk = d.cross(ax).normalized()           # the back side of the neck
     if bk.dot(V((0, 1, 0))) < 0:
         bk = -bk
-    for ring, (f, n_, sz) in enumerate(((0.15, ruff, 1.0), (0.75, max(ruff - 3, 4), 0.75))):
-        c0 = pts[0].lerp(pts[1], f)
-        for j in range(n_):
-            a = math.radians(-120 + 240 * (j + 0.5 * ring) / max(n_ - 1 + ring * 0.5, 1))
-            o = (bk * math.cos(a) + ax * math.sin(a)).normalized()
-            b = c0 + o * nr * 0.92
-            dd = (o * 0.45 - d * 0.8).normalized()
-            ln = nr * 1.05 * sz * k
-            _puff(D, mat, b, dd, ln, ln * 0.42, ('near', ['spine'] + D.neck, 4.0, 2), out=o)
-    # down the back
+    c0 = pts[0].lerp(pts[1], 0.3)
+    for j in range(mane):
+        a = math.radians(-105 + 210 * j / max(mane - 1, 1))
+        o = (bk * math.cos(a) + ax * math.sin(a)).normalized()
+        b = c0 + o * nr * 0.85
+        dd = (o * 0.55 - d * 0.75).normalized()
+        ln = nr * (1.25 + 0.15 * math.cos(a))
+        _puff(D, mat, b, dd, ln, ln * 0.5, ('near', ['spine'] + D.neck, 4.0, 2), out=o)
     Ct, tr = L['torso_c'], L['torso_r']
     Rt = DL._rotm(L['torso_rot_deg'])
     for i in range(back):
-        f = i / max(back - 1, 1)
-        az = 180 + (22 if i % 2 else -22)
-        el = DL.lerp(62, 22, f)
-        p, n = DL.on_ell(V((0, 0, 0)), tr, az, el)
+        p, n = DL.on_ell(V((0, 0, 0)), tr, 180, 58 - 22 * i)
         p, n = Ct + Rt @ p, Rt @ n
-        dd = (V((0, 0.35, -1.0)) - n * n.dot(V((0, 0.35, -1.0)))).normalized()
-        ln = min(tr) * 0.55 * k
-        _puff(D, mat2 if i % 2 else mat, p, dd, ln, ln * 0.45, DL._torso_skin(D), out=n)
-    # arm fringes
+        dd = (V((0, 0.3, -1.0)) - n * n.dot(V((0, 0.3, -1.0)))).normalized()
+        ln = min(tr) * (0.75 - 0.12 * i)
+        _puff(D, mat, p - dd * ln * 0.25, dd, ln, ln * 0.5, DL._torso_skin(D), out=n)
     ar = L['arm_r']
     for a in D.arms:
-        for j in range(arms):
-            b = a['sh'].lerp(a['el'], 0.55) if j == 0 else a['el'].lerp(a['hand'], 0.45)
-            dd = V((a['side'] * 0.2, 0.6, -0.8)).normalized()
-            ln = ar * 2.4 * k
-            _puff(D, mat, b + V((a['side'] * ar * 0.4, ar * 0.5, 0)), dd, ln, ln * 0.42,
-                  ('rigid', a['arm'] if j == 0 else a['forearm']), out=V((a['side'], 0.6, 0)))
-    # fluffy thighs
+        b = a['sh'].lerp(a['el'], 0.75) + V((a['side'] * ar * 0.3, ar * 0.6, 0))
+        dd = V((a['side'] * 0.15, 0.55, -0.85)).normalized()
+        ln = ar * 2.6
+        _puff(D, mat, b, dd, ln, ln * 0.45, ('rigid', a['arm']), out=V((a['side'], 0.8, 0)), seg=12, rings=8)
     for lg in D.legs:
         hip, knee = lg['hip'], lg['knee']
-        for j in range(thighs):
-            f = 0.3 + 0.4 * j
-            b = hip.lerp(knee, f) + V((lg['side'] * L['leg_r'] * 1.1, L['leg_r'] * 1.4, 0))
-            dd = V((lg['side'] * 0.25, 0.35, -1.0)).normalized()
-            ln = L['leg_r'] * 2.4 * k
-            _puff(D, mat, b, dd, ln, ln * 0.45, ('rigid', lg['thigh']), out=V((lg['side'], 0.7, 0)))
-    # tail plume
+        b = hip.lerp(knee, 0.45) + V((lg['side'] * L['leg_r'] * 0.9, L['leg_r'] * 1.5, 0))
+        dd = V((lg['side'] * 0.2, 0.3, -1.0)).normalized()
+        ln = L['leg_r'] * 2.6
+        _puff(D, mat, b, dd, ln, ln * 0.48, ('rigid', lg['thigh']), out=V((lg['side'], 0.7, 0)), seg=12, rings=8)
+    # pom-pom tail
     tp = L['tail_pts']
     trr = L['tail_r']
-    tip = tp[-1]
     dt = (tp[-1] - tp[-2]).normalized()
-    for j in range(tail):
-        a = TAU * j / tail + 0.4
-        o = V((math.cos(a), 0, math.sin(a)))
-        b = tip - dt * trr * 0.9 + o * trr * 0.3
-        dd = (dt + o * 0.55).normalized()
-        ln = trr * 2.6 * k
-        _puff(D, mat, b, dd, ln, ln * 0.4, ('rigid', D.tail[-1]), out=o)
-    for j in range(2 if D.age != 'baby' else 1):
-        f = 0.3 + 0.3 * j
-        kk = f * (len(tp) - 1)
-        i0 = min(int(kk), len(tp) - 2)
-        p = tp[i0].lerp(tp[i0 + 1], kk - i0)
-        r = trr * DL.lerp(1.0, 0.3, f) * D.spec['tail'].get('flat', 0.85)
-        _puff(D, mat, p + UP * r * 0.75, V((0, 1.0, 0.25)), r * 1.8 * k, r * 0.7,
-              ('near', ['root'] + D.tail, 4.0, 2), out=UP)
+    tip = tp[-1] - dt * trr * 0.6
+    _puff(D, mat, tip, (dt + UP * 0.15), trr * 3.0, trr * 1.15, ('rigid', D.tail[-1]), out=UP,
+          sink=0.15, seg=18, rings=11)
+    if not baby:
+        for sd in (1, -1):
+            _puff(D, mat, tip - dt * trr * 0.4, (dt + V((sd * 0.55, 0, -0.1))), trr * 2.2, trr * 0.8,
+                  ('rigid', D.tail[-1]), out=V((sd, 0, 0.4)), sink=0.2, seg=12, rings=8)
     # head tuft
     hc, hr = L['head_c'], L['head_r']
-    for i in range(crest):
-        xo = (-1 + 2 * i / max(crest - 1, 1)) * 0.3 if crest > 1 else 0.0
-        p, n = DL.on_ell(hc, hr, xo * 70, 66 - abs(xo) * 15)
-        dd = (n * 0.8 + V((0, 0.6, 0))).normalized()
-        ln = hr[2] * (0.75 - abs(xo) * 0.6) * D.A['crest']
-        _puff(D, mat, p - n * hr[2] * 0.05, dd, ln, ln * 0.4, ('rigid', 'head'), out=V((xo, 0.3, 1)), sink=0.1)
+    for i, (az, el, sz) in enumerate(((0, 72, 1.0), (180, 62, 0.8))):
+        p, n = DL.on_ell(hc, hr, az, el)
+        dd = (n * 0.75 + V((0, 0.65, 0))).normalized()
+        ln = hr[2] * 0.8 * sz * D.A['crest']
+        _puff(D, mat, p - n * hr[2] * 0.06, dd, ln, ln * 0.42, ('rigid', 'head'), out=V((1, 0, 0)),
+              flat=0.6, sink=0.15, seg=10, rings=6)
 
 
-def f_bp_mittens(D, n=3, length=2.6, r=0.42):
+def f_bp_mittens(D, n=3, length=3.2, r=0.5):
     """Long blunt claws like soft mittens (therizino): rounded capsules
     hanging from each hand (length, r = fractions of the arm radius)."""
     L = D.L
@@ -311,7 +328,7 @@ def f_bp_beak(D, mat='horn', size=1.0):
                  keep=lambda u: u.y < 0.25), ('rigid', 'head'))
 
 
-DL.FEATURES.update({'bp_thumbs': f_bp_thumbs, 'bp_bumps': f_bp_bumps, 'bp_crest': f_bp_crest,
+DL.FEATURES.update({'bp_thumbs': f_bp_thumbs, 'bp_bands': f_bp_bands, 'bp_shoulders': f_bp_shoulders, 'bp_bumps': f_bp_bumps, 'bp_crest': f_bp_crest,
                     'bp_fluff': f_bp_fluff, 'bp_mittens': f_bp_mittens, 'bp_beak': f_bp_beak})
 
 
@@ -327,7 +344,7 @@ def _rear(M, P, ang, wave_side=0, wave=0.0, paws=1.0):
     if ang <= 1e-3 and not wave_side:
         return P
     P.r('root', -ang, 0, 0)
-    P.at('root', (0, -M.legl * 0.04 * ang / 40.0, M.legl * 0.05 * ang / 40.0))
+    P.at('root', (0, -M.legl * 0.04 * ang / 50.0, M.legl * 0.04 * ang / 50.0))
     # tail stays off the ground, neck and head level out
     P.r(D.tail[0], ang * 0.75)
     M.spread(P, D.tail[1:], ang * 0.2)
@@ -335,14 +352,14 @@ def _rear(M, P, ang, wave_side=0, wave=0.0, paws=1.0):
     P.r('head', ang * 0.32)
     pivot = L['root'] + P.loc.get('root', V((0, 0, 0)))
     q = Quaternion(V((1, 0, 0)), math.radians(-ang))
-    k = DL.clamp(ang / 40.0, 0.0, 1.0)
+    k = DL.clamp(ang / 50.0, 0.0, 1.0)
     for lg in D.legs:
         if not lg['front']:
             continue
         lf = R.len[lg['thigh']] + R.len[lg['shin']]
         sh = pivot + q @ (lg['hip'] - L['root'])
         s = lg['side']
-        tuck = sh + V((s * lf * 0.05, -lf * 0.42, -lf * 0.55)) * paws
+        tuck = sh + V((s * lf * 0.08, -lf * 0.5, -lf * 0.32)) * paws
         tgt = lg['ankle'].lerp(tuck, k)
         pitch = -55 * k
         yaw = 0.0
@@ -363,10 +380,10 @@ def igu_happy(M):
         P = M.base(t, T, breath=1, amp=0.3)
         up = DL.env(t, 0.0, 0.24, 0.8, 1.0)
         wv = math.sin(TAU * (t - 0.24) / 0.28) * DL.env(t, 0.24, 0.3, 0.72, 0.8)
-        _rear(M, P, 40 * up, wave_side=1, wave=wv)
+        _rear(M, P, 54 * up, wave_side=1, wave=wv)
         P.r('head', -6 * up, -8 * up, 10 * up + 4 * wv * up, post=True)
         M.tail(P, t, 1.0 / 3, yaw=20, pitch=4, lag=0.5)
-        P.jaw = 16 * DL.env(t, 0.15, 0.3, 0.75, 0.95)
+        P.jaw = 9 * DL.env(t, 0.15, 0.3, 0.75, 0.95)
         P.lid = DL.env(t, 0.52, 0.58, 0.66, 0.74)
         return P
     return T, g
@@ -378,7 +395,7 @@ def igu_call(M):
     def g(t):
         P = base(t)
         up = DL.env(t, 0.05, 0.3, 0.75, 0.98)
-        _rear(M, P, 26 * up)
+        _rear(M, P, 34 * up)
         return P
     return T, g
 
@@ -390,7 +407,7 @@ def igu_stand(M):
 
     def g(t):
         P = M.base(t, T, breath=2, amp=0.8)
-        _rear(M, P, 38 + 1.5 * DL.wave(t, T / 2))
+        _rear(M, P, 52 + 1.5 * DL.wave(t, T / 2))
         look = DL.tl(t, [(0, 0), (0.4, 0), (0.8, 20), (1.5, 20), (1.9, -16), (2.5, -16), (2.9, 0), (3.0, 0)])
         M.spread(P, D.neck, 0, look * 0.45, post=True)
         P.r('head', 0, look * 0.55, look * 0.15, post=True)
@@ -514,9 +531,9 @@ IGUANODON = dict(
     id='iguanodon', plan='quad', height=1.5, lod=0.85,
     pal=_pal(body='#f2cf6b', belly='#fbf0d6', accent='#ff8466', spots='#e09a42'),
     torso=(0.33, 0.50, 0.32), leg=0.34, fleg=0.25, leg_r=0.10, fleg_r=0.78, knee=0.06,
-    hip_y=0.50, sh_y=0.60, neck_z=0.38,
-    neck_len=0.22, neck_deg=48, neck_deg2=22, neck_n=2, neck_r=0.50,
-    head=dict(r=(0.25, 0.30, 0.25), off=(0.40, 0.25), snout=(0.66, 0.78, 0.58),
+    hip_y=0.50, sh_y=0.52, leg_x=0.52, neck_z=0.38,
+    neck_len=0.36, neck_deg=64, neck_deg2=30, neck_n=2, neck_r=0.48,
+    head=dict(r=(0.22, 0.27, 0.22), off=(0.40, 0.25), snout=(0.68, 0.90, 0.60),
               snout_fwd=0.55, snout_drop=0.22, snout_taper=(0.12, 0.10),
               smile=dict(width=66, z=-0.30, curl=0.26)),
     eye=dict(r=0.28, az=40, el=18, flat=0.5, gaze=0.18),
@@ -525,6 +542,7 @@ IGUANODON = dict(
     parts=[
         ('bp_bumps', dict(n=6, size=0.24, start=0.12, end=0.88, tail=3)),
         ('bp_thumbs', dict(size=1.0)),
+        ('bp_shoulders', dict()),
         ('spots', dict(spots=[(180, 62, 0.26), (150, 42, 0.20), (210, 42, 0.20), (120, 25, 0.15),
                               (240, 25, 0.15), (40, 55, 0.15), (320, 55, 0.15), (165, 80, 0.16)])),
     ],
@@ -534,7 +552,7 @@ IGUANODON = dict(
 )
 
 PARASAUR = dict(
-    id='parasaur', plan='biped', height=1.7, lod=0.95,
+    id='parasaur', plan='biped', height=1.7, lod=0.9,
     pal=_pal(body='#f6a283', belly='#fbecd8', accent='#2fb7c4', spots='#e46f86'),
     torso=(0.38, 0.46, 0.40), tilt_deg=24, t_fwd=0.2, leg=0.42, leg_r=0.11, knee=0.2,
     thigh_r=1.75, foot_len=1.5, arm_len=0.62, arm_r=0.15, arm_z=0.0,
@@ -546,18 +564,19 @@ PARASAUR = dict(
     tail=dict(len=0.95, r=0.48, n=4, droop_deg=14, droop2_deg=-6, tip=0.2, flat=0.95),
     toes=3,
     parts=[
-        ('bp_crest', dict(length=1.75, r=0.22)),
-        ('stripes', dict(n=4, width=0.12, length=0.72, start=0.25, end=0.9, tail=3)),
+        ('bp_crest', dict(length=1.9, r=0.22, rise=0.34)),
+        ('bp_bands', dict(n=4, start=-0.2, end=0.55, arc=44, width=0.09, tail=3)),
     ],
     moves=dict(stance={'head': (-4, 0, 0)}),
     anims={'call': para_call},
+    age_tweak={'baby': dict(lod=0.62)},
     speeds={'baby': (0.8, 2.0), 'juv': (1.1, 2.6), 'adult': (1.4, 3.2)},
 )
 
 THERIZINO = dict(
     id='therizino', plan='biped', height=2.0, lod=0.78,
-    pal=_pal(body='#cf9c78', belly='#fbecd6', accent='#fff1dc', spots='#a8714f'),
-    torso=(0.44, 0.44, 0.52), tilt_deg=46, t_fwd=0.15, t_up=0.5, leg=0.30, leg_r=0.12, knee=0.18,
+    pal=_pal(body='#cf9c78', belly='#fbecd6', accent='#f9e2c4', spots='#a8714f'),
+    torso=(0.44, 0.44, 0.50), tilt_deg=38, t_fwd=0.15, t_up=0.5, leg=0.40, leg_r=0.13, knee=0.18,
     thigh_r=1.9, foot_len=1.5, arm_len=1.05, arm_r=0.15, arm_z=0.15,
     belly_r=(0.84, 0.82, 0.88), belly_off=(0.0, -0.28, -0.08),
     neck_len=0.34, neck_deg=82, neck_deg2=42, neck_n=2, neck_r=0.42, neck_taper=0.75,
@@ -570,17 +589,19 @@ THERIZINO = dict(
     parts=[
         ('bp_fluff', dict()),
         ('bp_mittens', dict()),
+        ('bp_bands', dict(n=0, tail=2, width=0.1)),
     ],
-    moves=dict(stance={'head': (-4, 0, 0)}),
+    moves=dict(stance={'head': (-4, 0, 0), 'forearm.L': (28, 0, 0), 'forearm.R': (28, 0, 0)}),
     anims={'idle': theri_idle, 'scratch': theri_scratch},
+    age_tweak={'baby': dict(lod=0.48)},
     speeds={'baby': (0.7, 1.6), 'juv': (0.9, 2.0), 'adult': (1.1, 2.4)},
 )
 
 GALLI = dict(
     id='galli', plan='biped', height=1.1, lod=0.9,
-    pal=_pal(body='#ea86b4', belly='#fdeee0', accent='#ffd650', spots='#a54a86'),
+    pal=_pal(body='#ea86b4', belly='#fdeee0', accent='#ffd650', spots='#bd5a98'),
     torso=(0.22, 0.28, 0.22), tilt_deg=18, t_fwd=0.2, leg=0.58, leg_r=0.06, knee=0.28,
-    thigh_r=2.0, foot_len=1.9, arm_len=0.62, arm_r=0.15, arm_z=0.0,
+    thigh_r=1.55, foot_len=1.9, arm_len=0.62, arm_r=0.15, arm_z=0.0,
     neck_len=0.44, neck_deg=84, neck_deg2=40, neck_n=3, neck_r=0.40, neck_taper=0.72,
     head=dict(r=(0.19, 0.22, 0.18), off=(0.42, 0.25), snout=(0.58, 0.82, 0.46),
               snout_fwd=0.5, snout_drop=0.18, snout_taper=(0.32, 0.15), jaw_mat='horn',
@@ -592,17 +613,18 @@ GALLI = dict(
         ('feathers', dict(crest=[(0.0, 0.9, 0.8, 0.18), (-0.25, 0.65, 0.7, 0.14), (0.25, 0.65, 0.7, 0.14)],
                           arms=2, tail_tuft=3)),
         ('bp_beak', dict()),
-        ('stripes', dict(n=3, width=0.13, length=0.75, start=0.25, end=0.8, tail=3)),
+        ('bp_bands', dict(n=3, start=-0.1, end=0.55, arc=46, width=0.09, tail=3)),
     ],
     moves=dict(stance={'head': (-4, 0, 0)}),
     anims={'idle': galli_idle, 'happy': galli_happy},
+    age_tweak={'baby': dict(lod=0.56)},
     speeds={'baby': (0.8, 2.6), 'juv': (1.3, 3.4), 'adult': (1.8, 4.0)},
 )
 
 SPECIES = {'iguanodon': IGUANODON, 'parasaur': PARASAUR, 'therizino': THERIZINO, 'galli': GALLI}
 EGGS = {
-    'iguanodon': dict(shell='#fff2cf', spots='#f08a62'),
+    'iguanodon': dict(shell='#fbe9ad', spots='#f07f5c'),
     'parasaur': dict(shell='#fde3d6', spots='#2fb7c4'),
-    'therizino': dict(shell='#f4e6d4', spots='#b47c58'),
+    'therizino': dict(shell='#f2dcc2', spots='#a8714f'),
     'galli': dict(shell='#fde6f0', spots='#e270a6'),
 }

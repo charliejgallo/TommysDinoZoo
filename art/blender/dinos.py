@@ -179,7 +179,10 @@ PLESIO = dict(
 
 SPECIES = {'trike': TRIKE, 'raptor': RAPTOR, 'trex': TREX, 'brachio': BRACHIO,
            'ptera': PTERA, 'plesio': PLESIO}
-EGGS = {'trike': dict(shell='#f8eedb', spots='#b49ade')}
+EGGS = {'trike': dict(shell='#f8eedb', spots='#b49ade'),
+        'raptor': dict(shell='#eef4ff', spots='#5a8fe0'),
+        'trex': dict(shell='#f1f7e6', spots='#5fae63'),
+        'brachio': dict(shell='#eaf8f6', spots='#3fb7b0')}
 
 # More species live in species_<group>.py modules (one per art agent, so
 # several can work at once): each defines SPECIES and EGGS dicts that are

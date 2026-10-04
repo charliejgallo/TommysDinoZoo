@@ -21,19 +21,22 @@ Walk / run speeds each model was animated for (m/s, cycle in s; the root
 stays in place, the game moves the node at this speed; feet do not slide):
 
   model           walk m/s (cycle s)   run m/s (cycle s)
-  stego_baby      0.80 (0.47)          1.60 (0.40)
-  stego_juv       0.90 (0.60)          1.90 (0.50)
-  stego_adult     1.10 (0.70)          2.20 (0.60)
-  ankylo_baby     0.70 (0.33)          1.40 (0.30)
-  ankylo_juv      0.85 (0.40)          1.70 (0.37)
-  ankylo_adult    1.00 (0.47)          2.00 (0.43)
-  proto_baby      0.70 (0.33)          1.50 (0.30)
-  proto_juv       0.80 (0.40)          1.80 (0.33)
-  proto_adult     0.90 (0.47)          2.10 (0.40)
-  pachy_baby      0.80 (0.40)          2.00 (0.30)
-  pachy_juv       1.00 (0.47)          2.60 (0.33)
-  pachy_adult     1.20 (0.57)          3.20 (0.40)
+  stego_baby      0.80 (0.40)          1.60 (0.33)
+  stego_juv       0.90 (0.47)          1.90 (0.43)
+  stego_adult     1.10 (0.63)          2.20 (0.63)
+  ankylo_baby     0.60 (0.37)          1.30 (0.30)
+  ankylo_juv      0.80 (0.37)          1.60 (0.33)
+  ankylo_adult    1.00 (0.43)          2.00 (0.43)
+  proto_baby      0.55 (0.27)          1.20 (0.27)
+  proto_juv       0.70 (0.27)          1.50 (0.27)
+  proto_adult     0.80 (0.40)          1.80 (0.33)
+  pachy_baby      0.70 (0.30)          1.80 (0.27)
+  pachy_juv       0.95 (0.33)          2.40 (0.27)
+  pachy_adult     1.20 (0.47)          3.00 (0.37)
 
+The tiny ones (proto, baby ankylo/pachy) walk a little under the 0.8 m/s
+guideline so their stubby legs do not blur; checked in Blender that the
+planted feet move back at exactly these speeds.
 (the cycle times are what the build printed; rebuild with --only to see them.)
 
 Personality in the animations (spec['anims'], see dino_lib.animate):
@@ -82,7 +85,7 @@ def _torso_pt(D, az, el, sc=1.0):
 # ---------------------------------------------------------------- local parts
 
 
-def f_tailspikes(D, pairs=2, at=0.72, gap=0.13, length=2.6, r=0.55, mat='accent'):
+def f_tailspikes(D, pairs=2, at=0.72, gap=0.13, length=1.7, r=0.85, mat='accent'):
     """Thagomizer, kid-safe: pairs of short fat spikes with round tips near
     the tail end (length and r are fractions of the local tail radius)."""
     pts = D.L['tail_pts']
@@ -93,13 +96,13 @@ def f_tailspikes(D, pairs=2, at=0.72, gap=0.13, length=2.6, r=0.55, mat='accent'
         rt = _tail_r(D, f) * D.spec['tail'].get('flat', 0.85)
         bone = D.tail[min(j, len(D.tail) - 1)]
         for sd in (1, -1):
-            out = V((sd * 0.80, 0.0, 0.62)) + d * (0.35 + 0.15 * i)
+            out = V((sd * 0.92, 0.0, 0.40)) + d * (0.30 + 0.15 * i)
             out.normalize()
             ln = length * rt * k * (1.0 - 0.12 * i)
             rb = r * rt * (0.8 + 0.2 * k)
             b = p + out * rt * 0.45
             DL_t = DL.tube('tspike', D.m(mat), [b, b + out * ln * 0.55, b + out * ln + d * ln * 0.12],
-                           [rb, rb * 0.72, rb * 0.48], seg=D.lod(10, 8), cap='end', sub=3)
+                           [rb, rb * 0.8, rb * 0.66], seg=D.lod(10, 8), cap='end', sub=3)
             D.add(DL_t, ('rigid', bone))
 
 
@@ -112,6 +115,8 @@ def f_roundplates(D, n=9, size=0.62, start=0.02, end=0.96, peak=0.55, width=0.95
     L = D.L
     tr = L['torso_r']
     sz = size * tr[2] * D.A['plate']
+    if D.age == 'baby':                 # fewer, chunkier plates on babies
+        n, tail, neck = 7, 1, 0
 
     def plate(base, nrm, along, s, xo, bone_how, lean_deg):
         side = along.cross(nrm).normalized()
@@ -121,7 +126,7 @@ def f_roundplates(D, n=9, size=0.62, start=0.02, end=0.96, peak=0.55, width=0.95
         def fn(u, v):
             prof = math.sqrt(max(0.0, 1 - v ** 2.2)) * (1 + 0.32 * math.sin(math.pi * v))
             return b + along * (u - 0.5) * s * width * prof + up * s * v * 1.05
-        D.add(DL.slab('plate', D.m(mat), fn, D.lod(8, 6), D.lod(8, 6), s * thick, ref=side),
+        D.add(DL.slab('plate', D.m(mat), fn, D.lod(8, 6), D.lod(6, 5), s * thick, ref=side),
               bone_how)
 
     for i in range(n):
@@ -166,7 +171,8 @@ def f_scutes(D, rows=((30, 7, 0.20), (52, 6, 0.21), (74, 4, 0.20)), span_lo=15, 
                 p, nrm = _torso_pt(D, az, el)
                 s = sz * tr[2] * k * (0.8 + 0.2 * math.sin(math.pi * u))
                 D.add(DL.ell('scute', D.m(mat), p + nrm * s * 0.12, (s, s, s * height),
-                             rot=DL.frame(nrm, UP), seg=D.lod(12, 10), rings=D.lod(8, 6)),
+                             rot=DL.frame(nrm, UP), seg=D.lod(18, 12), rings=D.lod(10, 8),
+                             keep=lambda u: u.z > -0.3),
                       DL._torso_skin(D))
     if top:                         # a row along the spine
         sz = rows[-1][2] * 1.05
@@ -176,7 +182,8 @@ def f_scutes(D, rows=((30, 7, 0.20), (52, 6, 0.21), (74, 4, 0.20)), span_lo=15, 
             p, nrm = _torso_pt(D, 0 if u < 0.5 else 180, el)
             s = sz * tr[2] * k
             D.add(DL.ell('scute', D.m(mat), p + nrm * s * 0.12, (s, s, s * height),
-                         rot=DL.frame(nrm, UP), seg=D.lod(12, 10), rings=D.lod(8, 6)), DL._torso_skin(D))
+                         rot=DL.frame(nrm, UP), seg=D.lod(18, 12), rings=D.lod(10, 8),
+                         keep=lambda u: u.z > -0.3), DL._torso_skin(D))
 
 
 def f_sidebumps(D, n=4, el=8, size=0.20, mat='horn'):
@@ -214,37 +221,34 @@ def f_club(D, size=2.3, mat='accent', knobs=True):
                          rings=D.lod(8, 6)), ('rigid', bone))
 
 
-def f_dome(D, r=(0.9, 0.95, 0.64), el=60, mat='accent', knobs=11, knob_mat='horn',
-           snout_knobs=3, knob=0.13):
-    """Pachy's dome: a big round cap on the head, ringed by soft knobs at the
-    back and sides, a few small ones on the snout (r: head-radius fractions)."""
+def f_dome(D, r=(0.90, 0.92, 0.84), lift=0.34, back=0.06, mat='accent', knobs=10, knob_mat='horn',
+           snout_knobs=3, knob=0.13, knob_el=34):
+    """Pachy's dome: a big round cap growing out of the top of the head (an
+    ellipsoid whose lower half sits inside the head), ringed by soft knobs at
+    the back and sides, a few small ones on the snout (head-radius fractions)."""
     L = D.L
     hc, hr = L['head_c'], L['head_r']
-    k = D.A['crest']
-    p, n = DL.on_ell(hc, hr, 0, el)
+    k = 0.8 + 0.2 * D.A['crest']
+    rr = (hr[0] * r[0] * k, hr[1] * r[1] * k, hr[2] * r[2] * k)
+    c = hc + UP * hr[2] * lift * k + V((0, hr[1] * back, 0))
+    D.add(DL.ell('dome', D.m(mat), c, rr, seg=D.lod(26), rings=D.lod(14),
+                 keep=lambda u: u.z > -0.55), ('rigid', 'head'))
     m = sum(hr) / 3
-    rr = (m * r[0] * k, m * r[1] * k, m * r[2] * k)
-    c = p - n * rr[2] * 0.5
-    D.add(DL.ell('dome', D.m(mat), c, rr, rot=DL.frame(n, FWD), seg=D.lod(24), rings=D.lod(14)),
-          ('rigid', 'head'))
-    D.ref['dome'] = (c, rr, n)
     ks = knob * m * (0.7 + 0.3 * D.A['plate'])
     if D.age == 'baby':
-        knobs = max(5, knobs - 4)
+        knobs = max(6, knobs - 4)
     for i in range(knobs):
         u = i / max(knobs - 1, 1)
-        az = DL.lerp(-150, 150, u)
-        if abs(az) < 40:
-            continue
-        q, qn = DL.on_ell(hc, hr, az, 18 + 10 * math.cos(math.radians(az)))
-        s = ks * (0.85 + 0.3 * abs(math.sin(math.radians(az))))
-        D.add(DL.ell('knob', D.m(knob_mat), q + qn * s * 0.15, (s, s, s * 0.85),
+        az = 180 + DL.lerp(-125, 125, u)          # round the back and sides
+        q, qn = DL.on_ell(hc, hr, az, knob_el - 6 * math.cos(math.radians(az)))
+        s = ks * (0.8 + 0.35 * abs(math.sin(math.radians(az))))
+        D.add(DL.ell('knob', D.m(knob_mat), q + qn * s * 0.2, (s, s, s * 0.85),
                      rot=DL.frame(qn, UP), seg=8, rings=6), ('rigid', 'head'))
     snc, snr = L['snout_c'], L['snout_r']
     for i in range(snout_knobs if D.age != 'baby' else 0):
-        az = (-1 + 2 * i / max(snout_knobs - 1, 1)) * 22
-        q, qn = DL.on_ell(snc, snr, az, 62 - abs(az) * 0.5)
-        s = ks * 0.6
+        az = (-1 + 2 * i / max(snout_knobs - 1, 1)) * 24
+        q, qn = DL.on_ell(snc, snr, az, 60 - abs(az) * 0.5)
+        s = ks * 0.55
         D.add(DL.ell('sknob', D.m(knob_mat), q + qn * s * 0.1, (s, s, s * 0.8),
                      rot=DL.frame(qn, UP), seg=8, rings=5), ('rigid', 'head'))
 
@@ -365,11 +369,11 @@ _EYES = dict(eye_white='#ffffff', pupil='#2b2033', mouth='#6e2c48', tongue='#f48
 # Stegosaurus: sunny yellow with pink leaf plates (accent: the game can tint
 # them when it is happy), orange spots, two pairs of round tail spikes.
 STEGO = dict(
-    id='stego', plan='quad', height=1.5, lod=0.9,
+    id='stego', plan='quad', height=1.115, lod=0.85,
     pal=dict(body='#f5cf62', belly='#fbf0d6', accent='#ff8fae', spots='#f39a3a',
              horn='#fdf1d8', blush='#ff8fa6', **_EYES),
     torso=(0.33, 0.52, 0.36), leg=0.25, fleg=0.17, leg_r=0.10, fleg_r=0.85, knee=0.05,
-    hip_y=0.48, sh_y=0.55, neck_z=0.05,
+    hip_y=0.42, sh_y=0.52, leg_x=0.54, neck_z=0.05,
     neck_len=0.12, neck_deg=-12, neck_deg2=4, neck_n=1, neck_r=0.50,
     head=dict(r=(0.23, 0.25, 0.22), off=(0.40, 0.25), snout=(0.66, 0.62, 0.58),
               snout_fwd=0.58, snout_drop=0.28, smile=dict(width=62, z=-0.30, curl=0.24)),
@@ -381,6 +385,7 @@ STEGO = dict(
         ('spots', dict(spots=[(80, 35, 0.16), (280, 35, 0.16), (120, 20, 0.13), (240, 20, 0.13),
                               (55, 25, 0.12), (305, 25, 0.12), (150, 40, 0.13), (210, 40, 0.13)])),
     ],
+    age_tweak={'baby': dict(plate=0.72)},
     moves=dict(stance={'head': (-4, 0, 0)}),
     speeds={'baby': (0.8, 1.6), 'juv': (0.9, 1.9), 'adult': (1.1, 2.2)},
 )
@@ -388,10 +393,10 @@ STEGO = dict(
 # Ankylosaurus: coral, low and wide; a round dome of armour with butter knobs,
 # cream side bumps and a ball club. Curls into a ball when tickled.
 ANKYLO = dict(
-    id='ankylo', plan='quad', height=1.0, lod=0.9,
+    id='ankylo', plan='quad', height=1.0, lod=0.8,
     pal=dict(body='#ef8f7c', belly='#fbeedb', accent='#ffd98c', spots='#d86e60',
              horn='#fdf1d8', blush='#ff7fa0', **_EYES),
-    torso=(0.44, 0.48, 0.30), leg=0.13, leg_r=0.10, knee=0.04, leg_x=0.62,
+    torso=(0.44, 0.48, 0.30), leg=0.13, leg_r=0.10, knee=0.04, leg_x=0.56, hip_y=0.44,
     neck_len=0.06, neck_deg=12, neck_deg2=6, neck_n=1, neck_r=0.55, neck_z=0.10,
     head=dict(r=(0.28, 0.26, 0.23), off=(0.42, 0.2), snout=(0.70, 0.50, 0.58),
               snout_fwd=0.55, snout_drop=0.30, cheeks=(0.60, 0.10, 0.25, 0.38),
@@ -399,15 +404,16 @@ ANKYLO = dict(
     eye=dict(r=0.28, az=42, el=18, flat=0.5, gaze=0.18),
     tail=dict(len=0.62, r=0.38, n=3, droop_deg=14, droop2_deg=-4, tip=0.42),
     parts=[
-        ('q_scutes', dict(rows=((26, 5, 0.25), (54, 4, 0.27)), top=3, height=0.5)),
+        ('q_scutes', dict(rows=((26, 4, 0.29), (57, 3, 0.31)), top=3, height=0.72)),
         ('q_sidebumps', dict(n=4)),
         ('q_club', dict(size=2.2)),
+        ('stripes', dict(n=0, tail=2)),
         ('horns', dict(horns=[dict(az=62, el=30, len=0.5, r=0.17, dir=(0.75, 0.35, 0.45),
                                    curl=(0.6, 0.6, 0.2), mirror=True)])),
     ],
     moves=dict(stance={'head': (-2, 0, 0)}, hop=0.18, lift=1.2),
     anims={'pet': ankylo_pet},
-    speeds={'baby': (0.7, 1.4), 'juv': (0.85, 1.7), 'adult': (1.0, 2.0)},
+    speeds={'baby': (0.6, 1.3), 'juv': (0.8, 1.6), 'adult': (1.0, 2.0)},
 )
 
 # Protoceratops: bubblegum pink, chubby digger with a small mint frill and a
@@ -416,29 +422,29 @@ PROTO = dict(
     id='proto', plan='quad', height=0.6, lod=0.85,
     pal=dict(body='#f5a3c8', belly='#fcefe0', accent='#7fd8bf', spots='#e4669a',
              horn='#fdf1d8', blush='#ff7fa6', **_EYES),
-    torso=(0.31, 0.36, 0.31), leg=0.17, leg_r=0.09, knee=0.05,
+    torso=(0.31, 0.36, 0.31), leg=0.17, leg_r=0.09, knee=0.05, hip_y=0.42, sh_y=0.48, leg_x=0.54,
     neck_len=0.08, neck_deg=30, neck_n=1, neck_r=0.52,
     head=dict(r=(0.30, 0.30, 0.28), off=(0.40, 0.28), snout=(0.60, 0.60, 0.60),
               snout_fwd=0.58, snout_drop=0.30, cheeks=(0.56, 0.12, 0.25, 0.42)),
     eye=dict(r=0.28, az=40, el=16, flat=0.5, gaze=0.18),
     tail=dict(len=0.40, r=0.50, n=3, droop_deg=24, droop2_deg=0, tip=0.20),
     parts=[
-        ('frill', dict(r=1.28, tilt_deg=44, span_deg=200, scallops=5, scallop=0.08, up=0.45,
+        ('frill', dict(r=1.25, tilt_deg=30, span_deg=200, scallops=5, scallop=0.08, up=0.62,
                        back=0.38, cup=0.12, wrap=0.30, thick=0.2, spots=5)),
         ('beak', dict(size=0.85)),
         ('bump', dict(on='snout', az=0, el=62, r=(0.24, 0.32, 0.20), mat='body')),
         ('spots', dict(spots=[(180, 62, 0.24), (150, 42, 0.18), (210, 42, 0.18),
                               (120, 26, 0.14), (240, 26, 0.14), (165, 82, 0.15)])),
     ],
-    moves=dict(stance={'head': (-6, 0, 0)}, walk_reach=0.46),
+    moves=dict(stance={'head': (-6, 0, 0)}, walk_reach=0.5, run_reach=0.6),
     anims={'play': proto_play},
-    speeds={'baby': (0.7, 1.5), 'juv': (0.8, 1.8), 'adult': (0.9, 2.1)},
+    speeds={'baby': (0.55, 1.2), 'juv': (0.7, 1.5), 'adult': (0.8, 1.8)},
 )
 
 # Pachycephalosaurus: sky-blue biped, a big golden dome ringed with knobs.
 # Bonks the ball with the dome in `play`.
 PACHY = dict(
-    id='pachy', plan='biped', height=1.0,
+    id='pachy', plan='biped', height=1.0, lod=0.9,
     pal=dict(body='#84c6ec', belly='#f7efd8', accent='#ffc65c', spots='#5a9dd6',
              horn='#fdf1d8', blush='#ff9ab8', **_EYES),
     torso=(0.25, 0.31, 0.26), tilt_deg=22, t_fwd=0.2, leg=0.32, leg_r=0.08, knee=0.22,
@@ -456,7 +462,7 @@ PACHY = dict(
     ],
     moves=dict(stance={'head': (-4, 0, 0)}),
     anims={'play': pachy_play},
-    speeds={'baby': (0.8, 2.0), 'juv': (1.0, 2.6), 'adult': (1.2, 3.2)},
+    speeds={'baby': (0.7, 1.8), 'juv': (0.95, 2.4), 'adult': (1.2, 3.0)},
 )
 
 SPECIES = {'stego': STEGO, 'ankylo': ANKYLO, 'proto': PROTO, 'pachy': PACHY}
