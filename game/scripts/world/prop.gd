@@ -56,6 +56,8 @@ func _ready() -> void:
 	_add_colliders()
 	if def.has("anim_child"):
 		_bob = model.find_child(def.anim_child, true, false) as Node3D
+		if _bob:
+			_bob_base = _bob.position
 	if def.get("light", false):
 		_light = OmniLight3D.new()
 		_light.position.y = 1.9
@@ -70,12 +72,13 @@ func _ready() -> void:
 
 var _bob: Node3D
 var _bob_t := randf() * 10.0
+var _bob_base := Vector3.ZERO
 
 func _process(dt: float) -> void:
 	if _bob:
 		# smoke puffs, steam, waterfall: a gentle bob so the scene breathes
 		_bob_t += dt
-		_bob.position.y = sin(_bob_t * 1.2) * 0.12
+		_bob.position = _bob_base + Vector3(0, sin(_bob_t * 1.2) * 0.12, 0)
 		_bob.scale = Vector3.ONE * (1.0 + sin(_bob_t * 0.9) * 0.05)
 
 ## Colliders come from the content entry's "col":
@@ -259,7 +262,9 @@ func interact_info(p: Player) -> Dictionary:
 
 ## Any movable thing can be packed back into its box with an empty hand.
 func _pack_info(p: Player) -> Dictionary:
-	if def.get("fixed", false) or p.held() != "" or not p.has_free_slot():
+	# only what the player placed can go back in a box (the farm's own
+	# scenery stays put, and the prompt doesn't pop up everywhere)
+	if def.get("fixed", false) or not state.get("mine", false) or p.held() != "" or not p.has_free_slot():
 		return {}
 	if def.has("incubator") and state.get("egg", "") != "":
 		return {}

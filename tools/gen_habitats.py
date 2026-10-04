@@ -146,7 +146,7 @@ for i in range(5):
     a = rng.uniform(0, math.tau)
     rr = rng.uniform(0.3, 0.7)
     L.out.append(['lilypads', round(PC[0] + math.cos(a) * PR[0] * rr, 2), round(PC[1] + math.sin(a) * PR[1] * rr, 2), 0, {}])
-L.put('dock', round(PC[0] - PR[0] - 0.5) + 0.0, round(PC[1] + 1) + 0.0, 0, force=True)
+L.out.append(['dock', round(PC[0] - PR[0] + 0.3, 2), round(PC[1] + 1.0, 2), 1, {}])   # shore end west, water end east
 L.put('fishing_sign', round(PC[0] - PR[0] - 2.5) + 0.5, round(PC[1] + 3) + 0.5)
 L.scatter('palm', 4, rng)
 L.scatter('driftwood', 2, rng)
@@ -190,7 +190,7 @@ r.scatter('bone_toy', 2, rng)
 r.scatter('mud_pool', 1, rng)
 r.scatter('cycad', 3, rng)
 r.scatter('boulder_red', 3, rng)
-r.out.append(['volcano', 0, -56, 0, {}])   # scenery beyond the fence
+r.out.append(['volcano', 0, -53, 0, {}])   # scenery beyond the fence
 
 # the meadow gets a few toys too
 mz = Zone('meadow')
