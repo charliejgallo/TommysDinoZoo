@@ -153,8 +153,8 @@ silvestres que vuelven a dar cada día. El estanque da pescado con la caña.
 - **Tablero de misiones**: 3 misiones por día, cortas y claras
   ("Dale 3 helechos a Trici", "Juntá 5 cacas en la pradera", "Plantá
   zanahorias", "Cepillá a un dino", "Sacale una foto al braquio").
-- **Pedidos de vecinos** que pasean por la granja (la doctora Ana —
-  paleontóloga que vende huevos—, el abuelo Tito —tiendita— y chicos
+- **Pedidos de vecinos** que pasean por la granja (la doctora Nat —
+  paleontóloga que vende huevos—, el abuelo Juan —tiendita—, el tío Juampi —arregla cosas y da consejos— y chicos
   visitantes): "¿Me mostrás un dino que vuele?", "Necesito 4 bayas".
 - **Visitantes**: cuantos más dinos felices, más visitantes, y dejan
   monedas en la alcancía de la entrada (ingreso tranquilo para los más
@@ -167,7 +167,7 @@ silvestres que vuelven a dar cada día. El estanque da pescado con la caña.
 ## 8. Tienda
 
 Semillas, comida, herramientas (regadera, cepillo, pala, pelota, caña,
-cámara de fotos, manguera), **huevos** (los vende la doctora Ana; algunas
+cámara de fotos, manguera), **huevos** (los vende la doctora Nat; algunas
 especies se habilitan con hitos o con el terreno de su hábitat), muebles y
 decoración, terrenos, y **ropa para Tommy** (gorras, remeras, mochilas,
 como en Monster Hop; piel y pelo gratis).

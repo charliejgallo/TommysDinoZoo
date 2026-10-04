@@ -162,6 +162,8 @@ func show_settings() -> void:
 	_stepper(vb, "set.day_length", Game.DAY_CHOICES.map(func(m): return tr("set.minutes") % m),
 		Game.DAY_CHOICES.find(int(Game.settings.day_minutes)),
 		func(i): Game.settings.day_minutes = Game.DAY_CHOICES[i])
+	_stepper(vb, "set.camera", ["set.cam_0", "set.cam_1", "set.cam_2", "set.cam_3"].map(func(k): return tr(k)),
+		int(Game.settings.camera), func(i): Game.settings.camera = i)
 	var locs := Lang.languages.keys()
 	locs.sort()
 	var cur: String = Game.settings.locale if Game.settings.locale != "" else TranslationServer.get_locale().substr(0, 2)
@@ -426,3 +428,89 @@ func show_confirm(question: String, on_yes: Callable) -> void:
 		on_yes.call())
 	_button(vb, tr("menu.no"), back)
 	_focus_first(vb)
+
+# ---------------------------------------------------------------- dialog
+
+## A speech box at the bottom: the speaker's name, the text typing out, A to
+## go on; after the last line, optional choices ([label, callable]) and Bye.
+func show_dialog(speaker: String, lines: Array, choices: Array, on_close: Callable) -> void:
+	get_tree().paused = true
+	while not _stack.is_empty():
+		_stack.pop_back().queue_free()
+	var holder := Control.new()
+	holder.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_root.add_child(holder)
+	_stack.append(holder)
+	var panel := PanelContainer.new()
+	panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
+	panel.offset_left = -560
+	panel.offset_right = 560
+	panel.offset_top = -330
+	panel.offset_bottom = -170
+	holder.add_child(panel)
+	var vb := VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 10)
+	panel.add_child(vb)
+	var name_l := Label.new()
+	name_l.text = speaker
+	name_l.add_theme_color_override("font_color", UiTheme.ORANGE)
+	name_l.add_theme_font_size_override("font_size", 30)
+	vb.add_child(name_l)
+	var text := Label.new()
+	text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	text.custom_minimum_size = Vector2(1060, 70)
+	text.add_theme_font_size_override("font_size", 30)
+	vb.add_child(text)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 12)
+	row.alignment = BoxContainer.ALIGNMENT_END
+	vb.add_child(row)
+	var state := {"i": 0}
+	var finish := func():
+		if _stack.has(holder):
+			_stack.erase(holder)
+		holder.queue_free()
+		get_tree().paused = false
+		on_close.call()
+	var show_line := func(self_ref: Callable):
+		for c in row.get_children():
+			c.queue_free()
+		text.text = lines[state.i]
+		text.visible_ratio = 0.0
+		var tw := create_tween()
+		tw.tween_property(text, "visible_ratio", 1.0, clampf(text.text.length() * 0.02, 0.3, 1.6))
+		Sfx.play("ui_move", 0.1, -10.0)
+		var last: bool = state.i >= lines.size() - 1
+		if not last:
+			var nb := Button.new()
+			nb.text = "▶"
+			nb.custom_minimum_size = Vector2(110, 56)
+			nb.pressed.connect(func():
+				state.i += 1
+				self_ref.call(self_ref))
+			row.add_child(nb)
+			nb.grab_focus.call_deferred()
+			return
+		var first: Button = null
+		for ch in choices:
+			var b := Button.new()
+			b.text = ch[0]
+			b.custom_minimum_size = Vector2(0, 56)
+			var cb: Callable = ch[1]
+			b.pressed.connect(func():
+				Sfx.play("ui")
+				if _stack.has(holder):
+					_stack.erase(holder)
+				holder.queue_free()
+				get_tree().paused = false
+				cb.call())
+			row.add_child(b)
+			if first == null:
+				first = b
+		var bye := Button.new()
+		bye.text = tr("dlg.bye")
+		bye.custom_minimum_size = Vector2(140, 56)
+		bye.pressed.connect(finish)
+		row.add_child(bye)
+		(first if first else bye).grab_focus.call_deferred()
+	show_line.call(show_line)

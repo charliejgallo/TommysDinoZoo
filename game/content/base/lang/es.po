@@ -508,3 +508,186 @@ msgstr "¡Sí!"
 msgid "menu.no"
 msgstr "Todavía no"
 
+msgid "set.camera"
+msgstr "Cámara"
+
+msgid "set.cam_0"
+msgstr "Muy cerca"
+
+msgid "set.cam_1"
+msgstr "Cerca"
+
+msgid "set.cam_2"
+msgstr "Normal"
+
+msgid "set.cam_3"
+msgstr "Lejos"
+
+msgid "npc.nat"
+msgstr "Doctora Nat"
+
+msgid "npc.juampi"
+msgstr "Tío Juampi"
+
+msgid "npc.juan"
+msgstr "Abuelo Juan"
+
+msgid "npc.kid"
+msgstr "Visita"
+
+msgid "verb.talk"
+msgstr "Hablar"
+
+msgid "verb.give_kid"
+msgstr "Regalar"
+
+msgid "dlg.bye"
+msgstr "¡Chau!"
+
+msgid "dlg.another_tip"
+msgstr "Otro consejo"
+
+msgid "dlg.buy_eggs"
+msgstr "Ver huevos"
+
+msgid "dlg.dino_fact"
+msgstr "Contame un dato"
+
+msgid "dlg.shop"
+msgstr "Ver la tienda"
+
+msgid "nat.hello"
+msgstr "¡Hola, Tommy! Cada huevo trae un dino distinto. Si los cuidás bien, crecen fuertes y felices."
+
+msgid "juan.hello"
+msgstr "¡Buen día, campeón! ¿Qué te llevás hoy? Tengo semillas fresquitas."
+
+msgid "juampi.about"
+msgstr "¿«%s»? ¡Te doy una mano!"
+
+msgid "tip.pet"
+msgstr "Acercate a cualquier dino con la mano vacía y apretá A. ¡Les encantan los mimos!"
+
+msgid "tip.feed"
+msgstr "Agarrá comida (helecho, bayas, croquetas...) y apretá A frente a un dino. Fijate qué come cada uno."
+
+msgid "tip.scoop"
+msgstr "Llevá la pala en un casillero y apretá A sobre la caca. ¡Los dinos quedan más limpitos!"
+
+msgid "tip.brush"
+msgstr "Con el cepillo en la mano, apretá A frente a un dino. ¡Le sale brillito!"
+
+msgid "tip.harvest"
+msgstr "Los arbustos de bayas y los helechos dan cosecha todos los días. Apretá A frente a ellos."
+
+msgid "tip.plant"
+msgstr "Comprale semillas al abuelo Juan y apretá A sobre la huerta. Después regá con la regadera todos los días."
+
+msgid "tip.fill"
+msgstr "Con comida en la mano, apretá A en el comedero. Los dinos van solos a comer."
+
+msgid "tip.play"
+msgstr "Con la pelota en la mano, apretá A frente a un dino para jugar. ¡O tirala lejos!"
+
+msgid "tip.feed_dino"
+msgstr "Buscá a ese dino y dale su comida en la mano. ¡Su favorita le da más corazones!"
+
+msgid "tip.pet_dino"
+msgstr "Buscá a ese dino y acaricialo con la mano vacía (B cambia de casillero)."
+
+msgid "tip.general_1"
+msgstr "B cambia de casillero. Si lo mantenés apretado, soltás lo que tenés en la mano."
+
+msgid "tip.general_2"
+msgstr "Si un dino tiene una burbujita arriba, te está diciendo qué necesita."
+
+msgid "tip.general_3"
+msgstr "Con monedas podés comprar terrenos nuevos: cada hábitat trae dinos distintos."
+
+msgid "tip.general_4"
+msgstr "Los huevos van a la incubadora y nacen a la mañana siguiente. ¡Ponele un lindo nombre!"
+
+msgid "tip.general_5"
+msgstr "Los dinos felices crecen: de bebé a joven y de joven a grande."
+
+msgid "tip.general_6"
+msgstr "Cuando hay chicos de visita, fijate si quieren algo. ¡Te dejan monedas!"
+
+msgid "tip.general_7"
+msgstr "Las cosas que comprás vienen en una caja: apretá A donde quieras ponerla."
+
+msgid "kid.want"
+msgstr "¡Hola! ¿Me conseguís %s? ¡Porfa!"
+
+msgid "kid.happy"
+msgstr "¡Qué lindos tus dinos! ¡Me encanta esta granja!"
+
+msgid "kid.thanks"
+msgstr "¡Gracias! Te regaló %d monedas"
+
+msgid "toast.visitor"
+msgstr "¡Llegó una visita a la granja!"
+
+msgid "toast.visitor_tip"
+msgstr "La visita dejó %d monedas en la alcancía"
+
+msgid "fact.trike"
+msgstr "Tenía tres cuernos y un volado enorme en la cabeza. ¡Su cráneo era de los más grandes de todos los animales terrestres!"
+
+msgid "fact.stego"
+msgstr "Las placas de su espalda tal vez cambiaban de color para lucirse. ¡Su cerebro era del tamaño de una nuez!"
+
+msgid "fact.ankylo"
+msgstr "Era como un tanque con armadura, y tenía una cola con un mazo de hueso."
+
+msgid "fact.brachio"
+msgstr "Era altísimo, como un edificio de cuatro pisos, y comía hojas de la copa de los árboles."
+
+msgid "fact.parasaur"
+msgstr "Su cresta era hueca: la usaba como una trompeta para llamar a sus amigos."
+
+msgid "fact.pachy"
+msgstr "Tenía la cabeza con un domo de hueso de 25 cm de grosor."
+
+msgid "fact.iguanodon"
+msgstr "Tenía un pulgar con forma de pinche. ¡Fue uno de los primeros dinosaurios descubiertos!"
+
+msgid "fact.proto"
+msgstr "Era chiquito como una oveja y ponía sus huevos en nidos en la arena."
+
+msgid "fact.galli"
+msgstr "Corría muy rápido, como un avestruz, ¡tal vez a 60 km por hora!"
+
+msgid "fact.therizino"
+msgstr "Tenía garras larguísimas, ¡de casi un metro! Pero comía plantas."
+
+msgid "fact.trex"
+msgstr "Tenía los brazos cortitos pero muy fuertes, y un olfato buenísimo."
+
+msgid "fact.raptor"
+msgstr "Los velociraptores de verdad eran del tamaño de un pavo y tenían plumas."
+
+msgid "fact.spino"
+msgstr "Fue uno de los dinosaurios más grandes y le encantaba nadar y pescar."
+
+msgid "fact.dilo"
+msgstr "Tenía dos crestas finitas en la cabeza, como un peinado."
+
+msgid "fact.carno"
+msgstr "Tenía cuernitos como un toro y unos brazos chiquitísimos."
+
+msgid "fact.compy"
+msgstr "Era del tamaño de una gallina. ¡Uno de los dinosaurios más chiquitos!"
+
+msgid "fact.microraptor"
+msgstr "Tenía plumas en las cuatro patas y planeaba de árbol en árbol."
+
+msgid "fact.ptera"
+msgstr "No era un dinosaurio: era un reptil volador, primo de los dinos. ¡Sus alas medían como un auto!"
+
+msgid "fact.archaeo"
+msgstr "Era mitad dinosaurio y mitad pájaro: tenía plumas, alas y dientes."
+
+msgid "fact.plesio"
+msgstr "Vivía en el mar y nadaba con cuatro aletas, como una tortuga gigante con cuello largo."
+

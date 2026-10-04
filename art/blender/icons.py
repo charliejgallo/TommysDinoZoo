@@ -358,6 +358,16 @@ def brush():
             C.tube('handle', w, [(0.18, 0, 0.29), (0.32, 0, 0.36)], [0.03, 0.025], seg=10)]
 
 
+@icon
+def talk():
+    w = C.mat('white', '#ffffff')
+    d = C.mat('pupil', '#7a5236')
+    b = C.ellipsoid('bubble', w, (0, 0, 0.3), (0.24, 0.08, 0.17))
+    t = C.cone('tail', w, (-0.06, 0, 0.18), (-0.16, 0, 0.06), 0.06, seg=10)
+    dots = [C.ellipsoid('d%d' % i, d, (x, -0.08, 0.3), (0.03, 0.02, 0.03)) for i, x in enumerate((-0.09, 0, 0.09))]
+    return [b, t] + dots
+
+
 def build(name):
     C.reset()
     C._mats.clear()

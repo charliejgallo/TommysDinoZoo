@@ -181,6 +181,16 @@ SPECIES = {'trike': TRIKE, 'raptor': RAPTOR, 'trex': TREX, 'brachio': BRACHIO,
            'ptera': PTERA, 'plesio': PLESIO}
 EGGS = {'trike': dict(shell='#f8eedb', spots='#b49ade')}
 
+# More species live in species_<group>.py modules (one per art agent, so
+# several can work at once): each defines SPECIES and EGGS dicts that are
+# merged here. A module's entry replaces a draft of the same id.
+import glob as _glob  # noqa: E402
+import importlib as _il  # noqa: E402
+for _f in sorted(_glob.glob(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'species_*.py'))):
+    _m = _il.import_module(os.path.basename(_f)[:-3])
+    SPECIES.update(getattr(_m, 'SPECIES', {}))
+    EGGS.update(getattr(_m, 'EGGS', {}))
+
 
 A_ = C.args()
 

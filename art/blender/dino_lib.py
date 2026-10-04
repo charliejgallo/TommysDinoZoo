@@ -909,6 +909,8 @@ class Dino:
         self.eyes = []
         self.extra_bones = []
         self._eye_layout()
+        for fn in self.spec.get('pre_rig', ()):     # species hooks, e.g. append to self.extra_bones
+            fn(self)                                 # (name, head, tail, parent, roll_to)
         self.rig()
         build_body(self)
         for feat, opts in self.spec.get('parts', []):
@@ -2141,8 +2143,10 @@ def animate(D, only=None):
     D.actions = {}
     D.speeds = {}
     M = Moves(D)
-    for a in (only or ANIMS):
-        T, g = getattr(M, a)()
+    custom = D.spec.get('anims', {})     # {name: fn(M) -> (T, gen)}: per-species overrides
+    # names in `anims` that are not in ANIMS are extra actions (e.g. carno 'skid')
+    for a in (only or tuple(ANIMS) + tuple(k for k in custom if k not in ANIMS)):
+        T, g = custom[a](M) if a in custom else getattr(M, a)()
         F = int(round(T * FPS))
         key_action(D, a, F, g)
     return D.actions

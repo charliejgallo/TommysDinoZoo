@@ -23,7 +23,11 @@ var settings := {
 	"guide_arrow": true,
 	"fullscreen": false,
 	"text_scale": 1.0,
+	"camera": 1,          # index into CAMERA_ZOOMS
 }
+
+## Camera distance presets (Settings > Camera): very close .. far
+const CAMERA_ZOOMS := [0.58, 0.75, 1.0, 1.3]
 
 var slot := 0
 var day := 1
