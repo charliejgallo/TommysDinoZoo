@@ -1833,6 +1833,48 @@ def export_small(path, objects):
         C.export_glb(path, objects)
 
 
+def quaternion_actions(arm):
+    """Blender 3.3's glTF exporter, with export_optimize_animation_size,
+    DROPS a bone's rotation channel when the rotation is constant over an
+    action, because it only counts `rotation_quaternion` fcurves as animated
+    (we key rotation_euler): a held non-rest pose (sit legs, sleep root,
+    carry_idle arms) then vanishes in Godot. This rewrites every action's
+    euler keys as quaternion keys (same values at every frame) and puts the
+    pose bones in QUATERNION mode, so held poses survive the export.
+    npcs.py calls it; tommy.glb is still exported without it (unchanged
+    output): call `quaternion_actions(arm)` before export_small() in
+    build_tommy() to fix Tommy's sit / sleep / carry_idle the same way."""
+    for pb in arm.pose.bones:
+        pb.rotation_mode = 'QUATERNION'
+    for tr in arm.animation_data.nla_tracks:
+        for st in tr.strips:
+            act = st.action
+            f0, f1 = int(act.frame_range[0]), int(act.frame_range[1])
+            for pb in arm.pose.bones:
+                dp = 'pose.bones["%s"].rotation_euler' % pb.name
+                fcs = [act.fcurves.find(dp, index=i) for i in range(3)]
+                if any(fc is None for fc in fcs):
+                    continue
+                keys = []
+                prev = None
+                for f in range(f0, f1 + 1):
+                    q = Euler([fc.evaluate(f) for fc in fcs], 'XYZ').to_quaternion()
+                    if prev is not None and q.dot(prev) < 0:
+                        q.negate()
+                    prev = q
+                    keys.append((f, q))
+                for fc in fcs:
+                    act.fcurves.remove(fc)
+                qp = 'pose.bones["%s"].rotation_quaternion' % pb.name
+                for i in range(4):
+                    fc = act.fcurves.new(qp, index=i, action_group=pb.name)
+                    fc.keyframe_points.add(len(keys))
+                    for kp, (f, q) in zip(fc.keyframe_points, keys):
+                        kp.co = (f, q[i])
+                        kp.interpolation = 'LINEAR'
+                    fc.update()
+
+
 def build_cap_model():
     C.reset()
     C._mats.clear()
