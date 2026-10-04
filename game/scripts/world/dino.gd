@@ -206,10 +206,29 @@ func _think() -> void:
 		else:
 			_set_state("sleep", 999.0)
 		return
+	var w := _world()
+	var diet: Array = def.get("diet", [])
 	if needs.food < 0.55:
-		var trough = _world().find_feeder(habitat, def.get("diet", []), global_position)
+		var trough = w.find_feeder(habitat, diet, global_position)
+		if trough == null:
+			trough = w.find_prop(habitat, global_position, func(e): return e.get("graze", "") in diet)
 		if trough:
 			_go(trough.interact_point(), trough)
+			return
+	if needs.clean < 0.4:
+		var spot = w.find_prop(habitat, global_position, func(e): return e.get("care", "") != "")
+		if spot:
+			_go(spot.interact_point(), spot)
+			return
+	if needs.fun < 0.45 and randf() < 0.7:
+		var toy = w.find_prop(habitat, global_position, func(e): return e.get("toy", false))
+		if toy:
+			_go(toy.interact_point(), toy)
+			return
+	if is_flier() and randf() < 0.35:
+		var perch = w.find_prop(habitat, global_position, func(e): return e.has("perch_h"))
+		if perch:
+			_go(perch.global_position, perch)
 			return
 	if mood() < 0.3 and randf() < 0.6:
 		_set_state("idle", randf_range(3.0, 6.0))
@@ -236,7 +255,10 @@ func _pick_wander() -> void:
 	state = "wander"
 
 func _go(p: Vector3, node: Node) -> void:
-	_flying = is_flier() and node == null and p.distance_to(global_position) > 4.0 and randf() < 0.6
+	if _perch_y > 0.0:
+		_fly_h = _perch_y
+		_perch_y = 0.0
+	_flying = is_flier() and ((node == null and p.distance_to(global_position) > 4.0 and randf() < 0.6) or (node is Prop and node.def.has("perch_h")))
 	_goal = p
 	_goal_node = node
 	_stuck_t = 0.0
@@ -284,9 +306,13 @@ func _walk_to(p: Vector3, dt: float) -> void:
 	_last_pos = global_position
 
 var _flying := false
+var _perch_y := 0.0
 var _fly_h := 0.0
 
 func _ground_y() -> float:
+	if _perch_y > 0.0 and state == "idle":
+		return _perch_y
+	_perch_y = 0.0 if state != "idle" else _perch_y
 	if is_swimmer():
 		return SWIM_Y
 	if is_flier():
@@ -353,6 +379,21 @@ func _arrived(node: Node) -> void:
 		_eat_effects(0.45, false)
 		_set_state("eat", t)
 		return
+	if node is Prop and node.def.has("perch_h") and is_flier():
+		_perch_y = float(node.def.perch_h)
+		global_position = node.global_position + Vector3(0, _perch_y, 0)
+		_set_state("idle", randf_range(8.0, 16.0))
+		return
+	if node.has_method("visit_dino"):
+		var anim: String = node.visit_dino(self)
+		if anim != "":
+			face(node.global_position)
+			_set_state("react", rig.once(anim) if anim != "sit" else 4.0)
+			if anim == "sit":
+				rig.loop("sit")
+			if anim == "play" or anim == "happy":
+				_world().fx_hearts(interact_point() + Vector3(0, size() * 0.4, 0), 1)
+			return
 	if node.has_method("is_bed"):
 		_set_state("sleep", 999.0)
 		return

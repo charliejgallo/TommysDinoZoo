@@ -253,6 +253,11 @@ func _self_action() -> Dictionary:
 		return {"verb": "place", "icon": "place"}
 	if d.get("throwable", false):
 		return {"verb": "throw", "icon": "throw"}
+	if d.get("tool", "") == "fish":
+		var w := get_tree().get_first_node_in_group("world")
+		var fp := front_point(1.4)
+		if w and w.is_zone_open("lagoon") and w.pond_dist(Vector2(fp.x, fp.z)) < 0.3:
+			return {"verb": "fish", "icon": "water"}
 	return {}
 
 func _do_action() -> void:
@@ -269,6 +274,19 @@ func _do_action() -> void:
 			var w := get_tree().get_first_node_in_group("world")
 			if w and w.place_prop_from(self):
 				anim_once("pickup")
+		"fish":
+			var w := get_tree().get_first_node_in_group("world")
+			var wait := randf_range(1.5, 3.0)
+			anim_once("use")
+			lock(wait + 0.6)
+			w.toast(tr("toast.fish_wait"), "water")
+			await get_tree().create_timer(wait, false).timeout
+			Sfx.play("splash")
+			anim_once("happy")
+			if not give_item("fish"):
+				w.spawn_item("fish", front_point(0.6))
+			w.toast(tr("toast.fish_got"), "harvest")
+			Game.count("fished")
 		"throw":
 			var w := get_tree().get_first_node_in_group("world")
 			if w:

@@ -36,6 +36,7 @@ func setup(pid: String, pos: Vector3, r := 0, st := {}) -> void:
 	rot = r
 	state = st.duplicate(true)
 	position = pos
+	position.y = float(def.get("y", 0.0))
 	rotation.y = r * PI / 2.0
 
 func save() -> Array:
@@ -52,20 +53,9 @@ func _ready() -> void:
 	collision_layer = 1
 	model = Content.instance_model(def.get("model", "prop_" + id), Vector3(footprint().x * 0.8, 0.6, footprint().y * 0.8), Color(0.8, 0.7, 0.55))
 	add_child(model)
-	if not def.get("walk", false) and not def.has("plant_on"):
-		var col := CollisionShape3D.new()
-		var box := BoxShape3D.new()
-		var fp := footprint()
-		if def.has("shake") or id.begins_with("tree") or id == "palm" or id == "lamp":
-			box.size = Vector3(0.45, 2.0, 0.45)
-		elif id in ["flowers", "fern_clump", "garden_plot", "nest"]:
-			box.size = Vector3.ZERO
-		else:
-			box.size = Vector3(fp.x * 0.85, 1.2, fp.y * 0.85)
-		if box.size != Vector3.ZERO:
-			col.shape = box
-			col.position.y = box.size.y / 2.0
-			add_child(col)
+	_add_colliders()
+	if def.has("anim_child"):
+		_bob = model.find_child(def.anim_child, true, false) as Node3D
 	if def.get("light", false):
 		_light = OmniLight3D.new()
 		_light.position.y = 1.9
@@ -77,6 +67,48 @@ func _ready() -> void:
 		_update_feeder_look()
 	if def.has("incubator"):
 		update_incubator_look()
+
+var _bob: Node3D
+var _bob_t := randf() * 10.0
+
+func _process(dt: float) -> void:
+	if _bob:
+		# smoke puffs, steam, waterfall: a gentle bob so the scene breathes
+		_bob_t += dt
+		_bob.position.y = sin(_bob_t * 1.2) * 0.12
+		_bob.scale = Vector3.ONE * (1.0 + sin(_bob_t * 0.9) * 0.05)
+
+## Colliders come from the content entry's "col":
+##   "none" | "trunk" (thin post) | "box" (footprint, default) |
+##   [w, d, h] a centred box | {"boxes": [[x, z, w, d, h], ...]} several.
+func _add_colliders() -> void:
+	var fp := footprint()
+	var spec = def.get("col", null)
+	if spec == null:
+		if def.get("walk", false) or id in ["flowers", "fern_clump", "garden_plot", "nest"]:
+			spec = "none"
+		elif def.has("shake") or id.begins_with("tree") or id.begins_with("palm") or id == "lamp":
+			spec = "trunk"
+		else:
+			spec = "box"
+	var boxes := []
+	match typeof(spec):
+		TYPE_STRING:
+			match spec:
+				"none": pass
+				"trunk": boxes.append([0, 0, 0.45, 0.45, 2.0])
+				"box": boxes.append([0, 0, fp.x * 0.85, fp.y * 0.85, 1.2])
+		TYPE_ARRAY:
+			boxes.append([0, 0, spec[0], spec[1], spec[2] if spec.size() > 2 else 1.2])
+		TYPE_DICTIONARY:
+			boxes = spec.get("boxes", [])
+	for b in boxes:
+		var col := CollisionShape3D.new()
+		var box := BoxShape3D.new()
+		box.size = Vector3(b[2], b[4], b[3])
+		col.shape = box
+		col.position = Vector3(b[0], b[4] / 2.0, b[1])
+		add_child(col)
 
 func update_incubator_look() -> void:
 	var old := get_node_or_null("Egg")
@@ -95,6 +127,8 @@ func update_incubator_look() -> void:
 		ap.play("wobble")
 
 func _interactive() -> bool:
+	if def.has("dig"):
+		return true
 	if not def.get("fixed", false):
 		return true
 	for k in ["feeder", "incubator", "plot", "missions", "home", "harvest", "shake", "shop"]:
@@ -165,6 +199,26 @@ func _update_feeder_look() -> void:
 		m.rotation.z = deg_to_rad(80) if randf() < 0.5 else 0.0
 		pile.add_child(m)
 
+## A dino arriving at a grazing plant, a care spot or a toy. Returns the
+## animation it should play, or "" if this prop has nothing for it.
+func visit_dino(d: Dino) -> String:
+	if def.has("graze") and def.graze in d.def.get("diet", []):
+		d.needs.food = clamp(d.needs.food + 0.35, 0.0, 1.0)
+		return "eat"
+	match def.get("care", ""):
+		"clean":
+			d.needs.clean = clamp(d.needs.clean + 0.5, 0.0, 1.0)
+			d.needs.love = clamp(d.needs.love + 0.05, 0.0, 1.0)
+			return "happy"
+		"spa":
+			d.needs.clean = clamp(d.needs.clean + 0.35, 0.0, 1.0)
+			d.needs.love = clamp(d.needs.love + 0.15, 0.0, 1.0)
+			return "sit"
+	if def.get("toy", false):
+		d.needs.fun = clamp(d.needs.fun + 0.4, 0.0, 1.0)
+		return "play"
+	return ""
+
 # ---------------------------------------------------------------- player
 
 func interact_info(p: Player) -> Dictionary:
@@ -179,6 +233,12 @@ func interact_info(p: Player) -> Dictionary:
 		if state.get("egg", "") != "":
 			return {"verb": "look_egg", "icon": "egg", "priority": 1}
 		return _pack_info(p)
+	if def.has("dig"):
+		if int(state.get("day", 0)) == Game.day:
+			return {}
+		if p.held_def().get("tool", "") == "shovel":
+			return {"verb": "dig", "icon": "plant", "priority": 2}
+		return {"verb": "need_shovel", "icon": "scoop", "priority": 0, "disabled": true}
 	if def.has("harvest"):
 		if int(state.get("day", 0)) != Game.day:
 			return {"verb": "harvest", "icon": "harvest", "priority": 1}
@@ -254,6 +314,21 @@ func interact(p: Player, info: Dictionary) -> void:
 			], func(): pass)
 		"shop":
 			world().open_shop(p)
+		"dig":
+			state.day = Game.day
+			p.anim_once("dig")
+			Sfx.play("scoop")
+			var roll := randf()
+			if roll < 0.35:
+				world().spawn_item("roots", global_position + Vector3(0, 0, 0.9))
+			elif roll < 0.65:
+				world().spawn_item("seeds_bag", global_position + Vector3(0, 0, 0.9))
+			else:
+				var c := randi_range(5, 20)
+				Game.add_coins(c)
+				world().toast(tr("toast.dug_coins") % c, "coin")
+			world().fx_sparkles(global_position)
+			Game.count("dug")
 		"pack":
 			if p.give_item("box_" + id):
 				p.anim_once("pickup")
