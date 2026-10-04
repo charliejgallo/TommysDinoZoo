@@ -24,6 +24,7 @@ var _props_root: Node3D
 var _dinos_root: Node3D
 var _items_root: Node3D
 var _fences_root: Node3D
+var _npcs_root: Node3D
 var _noise_tex: NoiseTexture2D
 var _sleeping := false
 var menus: Menus
@@ -68,6 +69,7 @@ func _ready() -> void:
 	_dinos_root = _child("Dinos")
 	_items_root = _child("Items")
 	_fences_root = _child("Fences")
+	_npcs_root = _child("Npcs")
 	_pond_setup()
 	_build_ground()
 	_build_water()
@@ -511,6 +513,7 @@ func _process(dt: float) -> void:
 	_update_daylight()
 	_update_occluders(dt)
 	_update_guide(dt)
+	_update_visitors(dt)
 
 var _guide: Node3D
 var _guide_t := 0.0
@@ -580,8 +583,13 @@ func _update_occluders(dt: float) -> void:
 
 var cam_zoom := 1.0
 
+func _zoom_setting() -> float:
+	if Dev.arg("zoom") != "":
+		return float(Dev.arg("zoom"))
+	return Game.CAMERA_ZOOMS[clampi(int(Game.settings.camera), 0, Game.CAMERA_ZOOMS.size() - 1)]
+
 func _snap_camera() -> void:
-	cam_zoom = float(Dev.arg("zoom", "1"))
+	cam_zoom = _zoom_setting()
 	Stage.place_camera(cam, _cam_target())
 	cam.global_position = _cam_target() + Stage.cam_offset() * cam_zoom
 
@@ -596,6 +604,7 @@ func _cam_target() -> Vector3:
 	return c
 
 func _update_camera(dt: float) -> void:
+	cam_zoom = move_toward(cam_zoom, _zoom_setting(), dt * 1.5)
 	var want := _cam_target() + Stage.cam_offset() * cam_zoom
 	cam.global_position = cam.global_position.lerp(want, 1.0 - exp(-4.0 * dt))
 
@@ -768,7 +777,66 @@ func _close_day() -> Dictionary:
 			_refresh_plot(p)
 	return s
 
+## Neighbours come every morning; kids visit when the farm has happy dinos.
+func spawn_npcs() -> void:
+	for c in _npcs_root.get_children():
+		c.free()
+	var entry := Vector3(0, 0, 13.5)
+	var shop := _prop_pos("shop", Vector3(-5, 0, 11.5))
+	var inc := _prop_pos("incubator", Vector3(3, 0, 8))
+	var board := _prop_pos("board", Vector3(-2.6, 0, 6))
+	var juan := Npc.new()
+	juan.setup("juan", "npc_juan", shop + Vector3(0, 0, -0.55), [shop + Vector3(0, 0, -0.55)])
+	_npcs_root.add_child(juan)
+	var nat := Npc.new()
+	nat.setup("nat", "npc_nat", inc + Vector3(1.4, 0, 1.0), [inc + Vector3(1.4, 0, 1.0), Vector3(1.5, 0, -2.5), Vector3(4, 0, 4)])
+	_npcs_root.add_child(nat)
+	var juampi := Npc.new()
+	juampi.setup("juampi", "npc_juampi", board + Vector3(1.2, 0, 1.0), [board + Vector3(1.2, 0, 1.0), Vector3(-6, 0, 6.5), Vector3(-1.5, 0, -2.5)])
+	_npcs_root.add_child(juampi)
+	_kids_today = 0
+
+var _kids_today := 0
+var _kid_t := 30.0
+
+func _prop_pos(id: String, def: Vector3) -> Vector3:
+	for p in _props_root.get_children():
+		if p.id == id:
+			return p.global_position
+	return def
+
+const KID_WANTS := ["berries", "apple", "fern", "roots", "fish", "leaves"]
+const KID_MODELS := ["npc_kid_a", "npc_kid_b", "npc_kid_c"]
+
+func _update_visitors(dt: float) -> void:
+	_kid_t -= dt
+	if _kid_t > 0.0 or Game.hour > 16.0 or Game.hour < 8.0 or not Game.running:
+		return
+	_kid_t = randf_range(60.0, 140.0)
+	var happy := 0
+	for d in _dinos_root.get_children():
+		if d.mood() > 0.55:
+			happy += 1
+	if happy == 0 or _kids_today >= mini(1 + happy / 2, 4):
+		return
+	_kids_today += 1
+	var k := Npc.new()
+	var places := [Vector3(randf_range(-3, 3), 0, randf_range(-3, 2)), Vector3(randf_range(-6, 6), 0, randf_range(1, 9))]
+	k.setup("kid", KID_MODELS[randi() % KID_MODELS.size()], Vector3(randf_range(-1, 1), 0, 13.5), places)
+	k.want = KID_WANTS[randi() % KID_WANTS.size()] if randf() < 0.7 else ""
+	_npcs_root.add_child(k)
+	toast(tr("toast.visitor"), "heart")
+	# they leave after a while, dropping coins in the piggy bank by the gate
+	get_tree().create_timer(randf_range(150.0, 260.0), false).timeout.connect(func():
+		if is_instance_valid(k):
+			var tip := 5 + happy * 3
+			Game.add_coins(tip)
+			toast(tr("toast.visitor_tip") % tip, "coin")
+			k.leave(Vector3(0, 0, 14.5)))
+
 func _morning() -> void:
+	spawn_npcs()
+	_ensure_missions()
 	for d in _dinos_root.get_children():
 		if d.has_meta("unnamed"):
 			d.remove_meta("unnamed")
@@ -831,7 +899,9 @@ func load_state(d: Dictionary) -> void:
 		spawn_dino(dd)
 	for e in d.items:
 		spawn_item(e[0], Vector3(e[1], 0, e[2]))
+	spawn_npcs()
 	var ps: Array = d.get("players", [])
+	_ensure_missions.call_deferred()
 	for i in min(ps.size(), players.size()):
 		players[i].slots.assign(ps[i].slots)
 		players[i].active = int(ps[i].active)

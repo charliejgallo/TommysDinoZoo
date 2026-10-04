@@ -508,3 +508,186 @@ msgstr "Yes!"
 msgid "menu.no"
 msgstr "Not yet"
 
+msgid "set.camera"
+msgstr "Camera"
+
+msgid "set.cam_0"
+msgstr "Very close"
+
+msgid "set.cam_1"
+msgstr "Close"
+
+msgid "set.cam_2"
+msgstr "Normal"
+
+msgid "set.cam_3"
+msgstr "Far"
+
+msgid "npc.nat"
+msgstr "Doctor Nat"
+
+msgid "npc.juampi"
+msgstr "Uncle Juampi"
+
+msgid "npc.juan"
+msgstr "Grandpa Juan"
+
+msgid "npc.kid"
+msgstr "Visitor"
+
+msgid "verb.talk"
+msgstr "Talk"
+
+msgid "verb.give_kid"
+msgstr "Give"
+
+msgid "dlg.bye"
+msgstr "Bye!"
+
+msgid "dlg.another_tip"
+msgstr "Another tip"
+
+msgid "dlg.buy_eggs"
+msgstr "See eggs"
+
+msgid "dlg.dino_fact"
+msgstr "Tell me a fact"
+
+msgid "dlg.shop"
+msgstr "See the shop"
+
+msgid "nat.hello"
+msgstr "Hi, Tommy! Every egg holds a different dino. Look after them well and they'll grow up strong and happy."
+
+msgid "juan.hello"
+msgstr "Morning, champ! What will it be today? I've got fresh seeds."
+
+msgid "juampi.about"
+msgstr "“%s”? Let me help!"
+
+msgid "tip.pet"
+msgstr "Walk up to any dino with an empty hand and press A. They love cuddles!"
+
+msgid "tip.feed"
+msgstr "Grab some food (ferns, berries, kibble...) and press A in front of a dino. Check what each one eats."
+
+msgid "tip.scoop"
+msgstr "Carry the shovel in a slot and press A on the poop. It keeps the dinos clean!"
+
+msgid "tip.brush"
+msgstr "With the brush in hand, press A in front of a dino. Sparkles!"
+
+msgid "tip.harvest"
+msgstr "Berry bushes and ferns give a harvest every day. Press A in front of them."
+
+msgid "tip.plant"
+msgstr "Buy seeds from Grandpa Juan and press A on the garden bed. Then water it every day."
+
+msgid "tip.fill"
+msgstr "With food in hand, press A on the trough. The dinos go eat by themselves."
+
+msgid "tip.play"
+msgstr "With the ball in hand, press A near a dino to play. Or throw it far!"
+
+msgid "tip.feed_dino"
+msgstr "Find that dino and hand-feed it. Its favourite food gives extra hearts!"
+
+msgid "tip.pet_dino"
+msgstr "Find that dino and pet it with an empty hand (B switches slots)."
+
+msgid "tip.general_1"
+msgstr "B switches slots. Hold it to drop what you're carrying."
+
+msgid "tip.general_2"
+msgstr "If a dino shows a little bubble, it's telling you what it needs."
+
+msgid "tip.general_3"
+msgstr "With coins you can buy new land: each habitat brings different dinos."
+
+msgid "tip.general_4"
+msgstr "Eggs go in the incubator and hatch the next morning. Give it a nice name!"
+
+msgid "tip.general_5"
+msgstr "Happy dinos grow: from baby to youngster to grown-up."
+
+msgid "tip.general_6"
+msgstr "When kids visit, see if they want something. They leave coins!"
+
+msgid "tip.general_7"
+msgstr "Things you buy come in a box: press A where you want to put it."
+
+msgid "kid.want"
+msgstr "Hi! Could you get me some %s? Please!"
+
+msgid "kid.happy"
+msgstr "Your dinos are so cute! I love this farm!"
+
+msgid "kid.thanks"
+msgstr "Thanks! They gave you %d coins"
+
+msgid "toast.visitor"
+msgstr "A visitor came to the farm!"
+
+msgid "toast.visitor_tip"
+msgstr "The visitor left %d coins in the piggy bank"
+
+msgid "fact.trike"
+msgstr "It had three horns and a huge frill. Its skull was one of the biggest of any land animal ever!"
+
+msgid "fact.stego"
+msgstr "The plates on its back may have flushed with colour to show off. Its brain was the size of a walnut!"
+
+msgid "fact.ankylo"
+msgstr "It was like an armoured tank, with a bony club at the end of its tail."
+
+msgid "fact.brachio"
+msgstr "It was as tall as a four-storey building and ate leaves from the treetops."
+
+msgid "fact.parasaur"
+msgstr "Its crest was hollow: it used it like a trumpet to call its friends."
+
+msgid "fact.pachy"
+msgstr "Its head had a bony dome 25 cm thick."
+
+msgid "fact.iguanodon"
+msgstr "It had a spiky thumb. It was one of the first dinosaurs ever discovered!"
+
+msgid "fact.proto"
+msgstr "It was small like a sheep and laid its eggs in sandy nests."
+
+msgid "fact.galli"
+msgstr "It ran very fast, like an ostrich — maybe 60 km an hour!"
+
+msgid "fact.therizino"
+msgstr "It had giant claws, almost a metre long! But it ate plants."
+
+msgid "fact.trex"
+msgstr "It had tiny but very strong arms, and an amazing sense of smell."
+
+msgid "fact.raptor"
+msgstr "Real velociraptors were the size of a turkey and had feathers."
+
+msgid "fact.spino"
+msgstr "It was one of the biggest dinosaurs and loved swimming and fishing."
+
+msgid "fact.dilo"
+msgstr "It had two thin crests on its head, like a hairdo."
+
+msgid "fact.carno"
+msgstr "It had little horns like a bull and teeny-tiny arms."
+
+msgid "fact.compy"
+msgstr "It was the size of a chicken — one of the smallest dinosaurs!"
+
+msgid "fact.microraptor"
+msgstr "It had feathers on all four limbs and glided from tree to tree."
+
+msgid "fact.ptera"
+msgstr "It wasn't a dinosaur but a flying reptile, a dino cousin. Its wings were as wide as a car!"
+
+msgid "fact.archaeo"
+msgstr "It was half dinosaur, half bird: feathers, wings and teeth."
+
+msgid "fact.plesio"
+msgstr "It lived in the sea and swam with four flippers, like a giant long-necked turtle."
+
