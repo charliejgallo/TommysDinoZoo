@@ -115,6 +115,8 @@ func save_settings() -> void:
 
 func apply_settings() -> void:
 	var loc: String = settings.locale
+	if Dev.arg("lang") != "":
+		loc = Dev.arg("lang")
 	if loc == "":
 		loc = Lang.best_default()
 	Lang.set_language(loc)
