@@ -95,6 +95,8 @@ func update_incubator_look() -> void:
 		ap.play("wobble")
 
 func _interactive() -> bool:
+	if not def.get("fixed", false):
+		return true
 	for k in ["feeder", "incubator", "plot", "missions", "home", "harvest", "shake", "shop"]:
 		if def.has(k):
 			return true
@@ -170,13 +172,13 @@ func interact_info(p: Player) -> Dictionary:
 	if def.has("feeder") and def.feeder == "food":
 		if held.get("kind", "") == "food":
 			return {"verb": "fill", "icon": "fill", "priority": 2}
-		return {}
+		return _pack_info(p)
 	if def.has("incubator"):
 		if state.get("egg", "") == "" and p.held().begins_with("egg_"):
 			return {"verb": "incubate", "icon": "egg", "priority": 3}
 		if state.get("egg", "") != "":
 			return {"verb": "look_egg", "icon": "egg", "priority": 1}
-		return {}
+		return _pack_info(p)
 	if def.has("harvest"):
 		if int(state.get("day", 0)) != Game.day:
 			return {"verb": "harvest", "icon": "harvest", "priority": 1}
@@ -193,7 +195,15 @@ func interact_info(p: Player) -> Dictionary:
 		return {"verb": "sleep", "icon": "sleep", "priority": 1}
 	if def.has("shop"):
 		return {"verb": "shop", "icon": "shop", "priority": 2}
-	return {}
+	return _pack_info(p)
+
+## Any movable thing can be packed back into its box with an empty hand.
+func _pack_info(p: Player) -> Dictionary:
+	if def.get("fixed", false) or p.held() != "" or not p.has_free_slot():
+		return {}
+	if def.has("incubator") and state.get("egg", "") != "":
+		return {}
+	return {"verb": "pack", "icon": "place", "priority": 0}
 
 func interact(p: Player, info: Dictionary) -> void:
 	match info.verb:
@@ -241,6 +251,11 @@ func interact(p: Player, info: Dictionary) -> void:
 			world().ask_sleep(p)
 		"shop":
 			world().open_shop(p)
+		"pack":
+			if p.give_item("box_" + id):
+				p.anim_once("pickup")
+				Sfx.play("pickup")
+				queue_free()
 		_:
 			if def.has("plot"):
 				world().plot_do(self, p, info)

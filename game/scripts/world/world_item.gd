@@ -34,6 +34,9 @@ func _process(dt: float) -> void:
 			position.y = 0.0
 			if vel.length() < 1.0:
 				flying = false
+				var w := get_tree().get_first_node_in_group("world")
+				if w and def.get("throwable", false):
+					w.on_ball_landed(self)
 			vel = Vector3(vel.x * 0.5, -vel.y * 0.35, vel.z * 0.5)
 		return
 	if id != "poop":
@@ -44,7 +47,11 @@ func _process(dt: float) -> void:
 func interact_point() -> Vector3:
 	return global_position
 
+var carried_by: Node = null
+
 func interact_info(p: Player) -> Dictionary:
+	if carried_by != null or flying:
+		return {}
 	if def.get("needs_tool", "") != "":
 		if p.held_def().get("tool", "") == def.needs_tool:
 			return {"verb": "scoop", "icon": "scoop", "priority": 2}

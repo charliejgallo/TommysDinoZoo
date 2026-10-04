@@ -668,6 +668,14 @@ class Dino:
     """One species at one age. `spec` holds adult parameters (see dinos.py
     for the documented TRIKE example); AGES re-proportions them."""
 
+    def __new__(cls, spec=None, age='adult'):
+        # spec['dino_class'] = a Dino subclass (defined in a species_*.py
+        # module) that overrides layout/rig/build for an unusual body plan
+        sub = (spec or {}).get('dino_class')
+        if cls is Dino and sub is not None and issubclass(sub, Dino):
+            cls = sub
+        return object.__new__(cls)
+
     def __init__(self, spec, age='adult'):
         self.spec = spec
         self.age = age

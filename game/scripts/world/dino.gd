@@ -48,6 +48,8 @@ func setup(d: Dictionary) -> void:
 	habitat = d.get("habitat", def.get("habitat", "meadow"))
 	if d.has("pos"):
 		position = Vector3(d.pos[0], 0, d.pos[1])
+	if def.get("kind", "") == "swimmer":
+		position.y = SWIM_Y
 
 func save() -> Dictionary:
 	return {"species": species, "name": dino_name, "age": age, "grow": grow_days,
@@ -62,6 +64,8 @@ func _ready() -> void:
 	add_to_group("interact")
 	collision_layer = 4
 	collision_mask = 1 | 4
+	if not is_swimmer():
+		collision_mask |= 8   # land dinos stay out of the pond
 	var col := CollisionShape3D.new()
 	var cap := CapsuleShape3D.new()
 	var s := size()
@@ -100,6 +104,14 @@ func _build_model() -> void:
 	model.scale = Vector3.ONE * scale_fix
 	add_child(model)
 	rig = AnimRig.new(model)
+
+func is_swimmer() -> bool:
+	return def.get("kind", "") == "swimmer"
+
+func is_flier() -> bool:
+	return def.get("kind", "").begins_with("flier")
+
+const SWIM_Y := -0.35
 
 func walk_speed() -> float:
 	var w := float(def.get("walk", 1.0))
@@ -143,6 +155,7 @@ func _physics_process(dt: float) -> void:
 	_state_t -= dt
 	match state:
 		"idle":
+			global_position.y = _ground_y()
 			rig.loop("sad" if mood() < 0.3 else "idle")
 			if _state_t <= 0.0:
 				_think()
@@ -205,10 +218,13 @@ func _think() -> void:
 
 func _pick_wander() -> void:
 	var p: Vector3 = _world().random_point_in(habitat, global_position, 6.0)
+	if is_swimmer():
+		p = _world().random_point_in_pond(0.75)
 	_go(p, null)
 	state = "wander"
 
 func _go(p: Vector3, node: Node) -> void:
+	_flying = is_flier() and node == null and p.distance_to(global_position) > 4.0 and randf() < 0.6
 	_goal = p
 	_goal_node = node
 	_stuck_t = 0.0
@@ -228,19 +244,90 @@ func _walk_to(p: Vector3, dt: float) -> void:
 	var want := atan2(d.x, d.z)
 	_facing = lerp_angle(_facing, want, 1.0 - exp(-6.0 * dt))
 	model.rotation.y = _facing
-	var sp := walk_speed() * (0.6 if mood() < 0.3 else 1.0)
+	var sp := walk_speed() * (0.6 if mood() < 0.3 else 1.0) * (2.2 if _flying else 1.0)
+	if _running:
+		sp = float(def.get("run", 2.0)) * (walk_speed() / max(float(def.get("walk", 1.0)), 0.1)) * 0.8
+		if _goal_node and is_instance_valid(_goal_node) and _goal_node != _ball:
+			_goal = _goal_node.global_position + (global_position - _goal_node.global_position).normalized() * 1.0
+		if _ball and is_instance_valid(_ball) and _ball.carried_by == self:
+			_ball.global_position = global_position + _fwd() * size() * 0.45 + Vector3(0, size() * 0.55, 0)
 	velocity = _fwd() * sp
 	velocity.y = 0
 	move_and_slide()
-	global_position.y = 0.0
-	rig.loop("walk", sp / walk_speed())
+	global_position.y = _ground_y()
+	if is_flier() and _flying:
+		rig.loop("fly" if rig.has("fly") else "walk")
+	elif _running and rig.has("run"):
+		rig.loop("run")
+	else:
+		rig.loop("walk", sp / walk_speed())
 	if global_position.distance_to(_last_pos) < sp * dt * 0.3:
 		_stuck_t += dt
 	else:
 		_stuck_t = max(_stuck_t - dt, 0.0)
 	_last_pos = global_position
 
+var _flying := false
+var _fly_h := 0.0
+
+func _ground_y() -> float:
+	if is_swimmer():
+		return SWIM_Y
+	if is_flier():
+		_fly_h = move_toward(_fly_h, 2.2 if _flying else 0.0, get_physics_process_delta_time() * 1.5)
+		return _fly_h
+	return 0.0
+
+const FETCHERS := ["raptor", "compy", "galli", "dilo", "carno"]
+var _ball: WorldItem = null
+var _returning := false
+
+## Run after a thrown ball; fetchers bring it back to Tommy.
+func chase(ball: WorldItem) -> void:
+	_ball = ball
+	_returning = false
+	_go(ball.global_position, ball)
+	_running = true
+	voice()
+
+var _running := false
+
 func _arrived(node: Node) -> void:
+	_flying = false
+	_running = false
+	if node is WorldItem and node == _ball:
+		if not is_instance_valid(_ball):
+			_set_state("idle", 1.0)
+			return
+		face(_ball.global_position)
+		needs.fun = clamp(needs.fun + 0.35, 0.0, 1.0)
+		_befriend(1)
+		Game.count("played")
+		Game.count("fetch_" + species)
+		if species in FETCHERS and not _returning:
+			# pick it up and trot back to the nearest player
+			_ball.carried_by = self
+			_returning = true
+			var p: Node3D = _world().players[0]
+			_go(p.global_position + (global_position - p.global_position).normalized() * 1.0, p)
+			_running = true
+			return
+		_set_state("react", rig.once("play") if rig.has("play") else rig.once("happy"))
+		_world().fx_hearts(interact_point() + Vector3(0, size() * 0.4, 0), 2)
+		_ball = null
+		return
+	if node is Player and _returning and is_instance_valid(_ball):
+		_ball.carried_by = null
+		_ball.global_position = global_position + _fwd() * (size() * 0.5 + 0.3)
+		_ball.global_position.y = 0
+		_returning = false
+		_ball = null
+		face(node.global_position)
+		_set_state("react", rig.once("happy"))
+		voice()
+		_world().fx_hearts(interact_point() + Vector3(0, size() * 0.4, 0), 3)
+		_world().toast(tr("toast.fetched") % (dino_name if dino_name != "" else Content.dino_name(species)), "heart")
+		return
 	if node.has_method("feed_dino") and node.feed_dino(self):
 		face(node.global_position)
 		var t := rig.once("eat")
@@ -271,7 +358,7 @@ func interact_point() -> Vector3:
 	return global_position + Vector3(0, size() * 0.5, 0)
 
 func interact_radius() -> float:
-	return size() * 0.35
+	return size() * 0.35 + (1.2 if is_swimmer() else 0.0)
 
 func interact_info(p: Player) -> Dictionary:
 	var item := p.held()

@@ -71,6 +71,10 @@ func _model_for(name: String) -> String:
 		if id.begins_with("box_"):
 			return "item_box"
 		return Content.items.get(id, {}).get("model", "item_" + id)
+	if name.begins_with("dino:"):
+		return name.substr(5) + "_adult"
+	if name.begins_with("dinobaby:"):
+		return name.substr(9) + "_baby"
 	if name.begins_with("verb_"):
 		name = name.substr(5)
 	return "icon_" + ALIASES.get(name, name)
@@ -102,11 +106,18 @@ func _pump() -> void:
 	Look.apply(inst)
 	_holder.add_child(inst)
 	# turn it a little so it reads as 3D, then fit its box in the 1 m view
-	var flat: bool = name.trim_prefix("verb_") in FLAT
+	var flat: bool = name.trim_prefix("verb_") in FLAT or name.begins_with("dino")
 	var pivot := Node3D.new()
 	_holder.add_child(pivot)
 	inst.reparent(pivot, false)
 	pivot.rotation_degrees = Vector3(0, 0, 0) if flat else Vector3(18, -28, 0)
+	if name.begins_with("dino"):
+		pivot.rotation_degrees = Vector3(12, -35, 0)
+		var ap: AnimationPlayer = inst.find_child("AnimationPlayer", true, false)
+		if ap and ap.has_animation("idle"):
+			ap.play("idle")
+			ap.seek(0.4, true)
+			ap.pause()
 	var aabb := _aabb_in(pivot, _holder)
 	var s: float = 0.86 / maxf(maxf(aabb.size.x, aabb.size.y), 0.01)
 	pivot.scale = Vector3.ONE * s
