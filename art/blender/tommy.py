@@ -43,8 +43,25 @@ Animations (30 fps; root stays in place, the game moves the node)
   give       0.8 s        offer with the right hand
   happy      0.8 s        crouch, jump with both arms up, squash on landing
   yawn       1.6 s        stretch arms up, mouth open, eyes closed, relax
-  The big-item hold (carry_*) puts the hands at about (+-0.12, -0.20, 0.46)
-  in model space (Blender), i.e. ~0.20 m in front of the chest.
+  pet_low    1.0 s        crouch, stroke low in front (~0.3 m up, baby dinos)
+  use        1.0 s        right-hand tool: lift, tip forward/down x3, return
+  dig        0.9 s        shovel scoop: thrust, lever, lift/toss right (repeats)
+  wave       1.0 s        right arm up, three waves
+  sit        loop 3.0 s   on the ground, legs forward, kicking feet, look
+  sleep      loop 4.0 s   curled on his right side, slow breath, eyes closed
+                          (lies along X, ~0.82 x 0.5 m centred on the origin)
+  talk       loop 3.0 s   two phrases of mouth flaps, hand gestures, nods
+  The big-item hold (carry_*) puts the hands at about (+-0.115, -0.175, 0.455)
+  in model space (Blender), i.e. ~0.06 m in front of the belly.
+
+Hand attach convention (item_*.glb on hand.R)
+  hand.L/.R have their HEAD AT THE GRIP POINT (centre of the fist) and point
+  straight up, so their Godot rest basis is identity: an item whose origin
+  is its grip and whose axes are the model's (handle along +Z Blender, as in
+  props.py) attaches to hand.R with an identity offset. The hand pivots about
+  the grip. Animations steer the hand's world orientation (Pose.hold) so a
+  held item stays roughly upright in idle/walk/run/talk/give, tips forward in
+  `use` and angles the shovel in `dig`.
 
 Cap attach convention (cap_basic.glb, and any cap_<style>.glb)
   The cap's ORIGIN is the `head` bone's head in rest pose: model-space
@@ -355,6 +372,15 @@ def arm_rest(s):
     return sh, el, wr, tip
 
 
+GRIP = 0.036     # wrist -> grip point (fist centre) along the hand
+
+
+def grip_rest(s):
+    """Rest grip point: the hand bone's head (held items attach here)."""
+    _, _, wr, tip = arm_rest(s)
+    return wr + (tip - wr).normalized() * GRIP
+
+
 def side_pt(p, s):
     return V(s * p.x, p.y, p.z)
 
@@ -520,7 +546,7 @@ HAIR_BASE = [(0.0, 0.62), (0.55, 0.60), (0.85, 0.50), (1.02, 0.32), (1.12, 0.10)
              (math.pi, -0.42)]
 LOCKS = 16
 LOCK_PHASE = 0.13
-HAIR_TOP = 0.020
+HAIR_TOP = 0.016
 
 
 def lock_ridge(u):
@@ -697,7 +723,7 @@ def build_shoe(mb, s):
 # The cap (built in model space at rest, exported relative to the head bone)
 # ===========================================================================
 
-CAP_INFL = 0.032
+CAP_INFL = 0.027
 
 
 def cap_pt(d, infl=CAP_INFL):
@@ -772,7 +798,7 @@ def build_cap(mb):
     crown(mb, Rc, edge, 'cap')
     ax = (Rc @ V(0, 0, 1)).normalized()
     ellipsoid(mb, cap_pt(ax), (0.019, 0.019, 0.010), 'cap', rot=frame_z(ax, V(1, 0, 0)), n=10, rings=5)
-    bill(mb, Rc, edge, 60.0, 0.135, 4.0, 0.022, 0.013, 'cap_brim', 'cap_brim')
+    bill(mb, Rc, edge, 58.0, 0.125, 4.0, 0.022, 0.012, 'cap_brim', 'cap_brim')
 
 
 # ===========================================================================
@@ -789,7 +815,10 @@ def bone_list():
         sh, el, wr, tip = arm_rest(s)
         B += [('upper_arm.' + sd, sh, el, 'chest'),
               ('forearm.' + sd, el, wr, 'upper_arm.' + sd),
-              ('hand.' + sd, wr, tip, 'forearm.' + sd),
+              # head at the grip point, pointing straight up: identity rest
+              # basis in Godot, so items (origin = grip, model axes) attach
+              # to hand.X with no offset
+              ('hand.' + sd, grip_rest(s), grip_rest(s) + V(0, 0, 0.05), 'forearm.' + sd),
               ('thigh.' + sd, side_pt(HIP, s), side_pt(KNEE, s), 'root'),
               ('shin.' + sd, side_pt(KNEE, s), side_pt(ANKLE, s), 'thigh.' + sd),
               ('foot.' + sd, side_pt(ANKLE, s), side_pt(TOE, s), 'shin.' + sd)]
@@ -965,6 +994,11 @@ class Pose:
         self.hand = {'L': None, 'R': None}    # (target V, pole V) or None
         self.lid = [0.0, 0.0]                 # L, R: 0 open .. 1 closed
         self.mouth = (0.0, 0.0, 0.0)          # mouth_open scale (w, h, d)
+        self.legfk = {'L': False, 'R': False}  # True: legs FK from self.r (sit, sleep)
+        # hold: (euler deg in the chest frame, k): the hand's WORLD rotation is
+        # blended (k) towards chest @ euler, so a held item (+Z up in rest)
+        # stays upright / is tipped on purpose whatever the arm does
+        self.hold = {'L': None, 'R': None}
 
     def add(self, b, r):
         a = self.r.get(b, (0, 0, 0))
@@ -986,6 +1020,15 @@ def foot_place(fp):
     contact = P + Gy @ piv
     ank = contact - Gf @ piv + lift
     return ank, Gf
+
+
+def hold_rot(p, sd, Gh, Gchest):
+    e, k = p.hold[sd]
+    q0 = Gh.to_quaternion()
+    q1 = (Gchest @ eul(e)).to_quaternion()
+    if q0.dot(q1) < 0:
+        q1.negate()
+    return q0.slerp(q1, clamp(k, 0.0, 1.0)).to_matrix()
 
 
 def solve(p):
@@ -1024,6 +1067,8 @@ def solve(p):
             for b in (ua, fa, hd):
                 h, M, _ = REST[b]
                 R = eul(p.r.get(b, (0, 0, 0)))
+                if b == hd and p.hold[sd] is not None:
+                    R = G[fa].transposed() @ hold_rot(p, sd, G[fa] @ R, G['chest'])
                 D[b] = D[PARENT[b]] @ T4(h) @ R.to_4x4() @ T4(-h)
                 G[b] = G[PARENT[b]] @ R
                 out[b] = (R, None, None)
@@ -1038,6 +1083,8 @@ def solve(p):
             Gf = frame3(W - E, pole) @ frame3(W0 - E0, ref0).transposed()
             Rh = eul(p.r.get(hd, (0, 0, 0)))
             Gh = Gf @ Rh
+            if p.hold[sd] is not None:
+                Gh = hold_rot(p, sd, Gh, G['chest'])
             for b, Gb in ((ua, Gu), (fa, Gf), (hd, Gh)):
                 R = G[PARENT[b]].transposed() @ Gb
                 G[b] = Gb
@@ -1046,6 +1093,16 @@ def solve(p):
     for sd, s in (('L', 1), ('R', -1)):
         th, sh, ft = 'thigh.' + sd, 'shin.' + sd, 'foot.' + sd
         H0, K0, A0 = REST[th][0], REST[sh][0], REST[ft][0]
+        if p.legfk[sd]:
+            for b in (th, sh, ft):
+                h = REST[b][0]
+                R = eul(p.r.get(b, (0, 0, 0)))
+                D[b] = D[PARENT[b]] @ T4(h) @ R.to_4x4() @ T4(-h)
+                G[b] = G[PARENT[b]] @ R
+                out[b] = (R, None, None)
+            J['ankle' + sd] = J['ankle_tgt' + sd] = D[sh] @ A0
+            J['foot' + sd] = G[ft]
+            continue
         Hw = D['root'] @ H0
         fp = p.foot[sd] or foot_default(sd)
         A, Gfoot = foot_place(fp)
@@ -1089,7 +1146,9 @@ def bake(arm, name, frames, pose_fn, check_feet=None):
             err = max(err, (J['ankle' + sd] - J['ankle_tgt' + sd]).length)
         if check_feet:
             check_feet(t, J)
-    C.action(arm, name, frames, keys, fps=FPS)
+    act = C.action(arm, name, frames, keys, fps=FPS)
+    if A.get('check') and BODY:
+        ground_check(arm, BODY[0], act, frames)
     print('[tommy] %-11s %3d frames  %.2f s  max IK miss %.1f mm' % (name, frames, frames / FPS, err * 1000))
 
 
@@ -1158,7 +1217,7 @@ def idle_upper(p, t, period=4.0, look=True):
     """Breathing, a slow sway and a look around (all periodic in `period`)."""
     b = sinw(t, period / 2)
     w = sinw(t, period)
-    p.root += V(0.006 * w, 0, 0.002 * b)
+    p.root += V(0.006 * w, 0, 0.002 * b - 0.004)
     p.add('root', (0, -1.5 * w, 0))
     p.add('spine', (-1.0 * b, 1.0 * w, 0))
     p.add('chest', (-1.5 * b, 1.2 * w, 0))
@@ -1234,6 +1293,7 @@ def gait_pose(p, t, g, bob, base, lean, arms=True, arm_amp=26, elbow=22, carry=F
             p.add('upper_arm.' + sd, (arm_amp * c, -s * 4, s * 4))
             p.add('forearm.' + sd, (-elbow - 0.5 * elbow * max(0.0, -c2), 0, 0))
             p.add('hand.' + sd, (-8 + 6 * c2, 0, 0))
+            p.hold[sd] = ((4 * c2, 0, 0), 0.7)
     return q
 
 
@@ -1244,6 +1304,7 @@ def a_idle(t):
     idle_upper(p, t, 4.0)
     l = max(blink(t, 0.55), blink(t, 2.95), blink(t, 3.20))
     p.lid = [l, l]
+    p.hold = {'L': ((0, 0, 0), 0.7), 'R': ((0, 0, 0), 0.7)}
     return p
 
 
@@ -1264,7 +1325,7 @@ def a_run(t):
     return p
 
 
-CARRY = {'L': V(0.118, -0.205, 0.462), 'R': V(-0.118, -0.205, 0.462)}
+CARRY = {'L': V(0.115, -0.175, 0.455), 'R': V(-0.115, -0.175, 0.455)}
 
 
 def carry_arms(p, t, lag_bob=0.0):
@@ -1316,7 +1377,7 @@ def a_pickup(t):
     """0.7 s: dip, both hands to the ground in front, grab, stand into the
     carry pose."""
     p = Pose()
-    crouch = trk(t, [(0, 0), (0.06, 0.012), (0.24, -0.135), (0.34, -0.14), (0.52, -0.01), (0.60, 0.008),
+    crouch = trk(t, [(0, 0), (0.06, -0.004), (0.24, -0.135), (0.34, -0.14), (0.52, -0.012), (0.60, 0.0),
                      (0.7, 0.0)])
     lean = trk(t, [(0, 0), (0.06, -2), (0.24, 22), (0.34, 24), (0.54, 0), (0.62, -4), (0.7, -3)])
     p.root += V(0, 0.015 * lean / 28, crouch)
@@ -1354,19 +1415,19 @@ def a_pickup_full(t):
 def a_pet(t):
     """1.0 s: right hand forward at chest height, two strokes, eyes smiling."""
     p = Pose()
-    lean = trk(t, [(0, 0), (0.2, 8), (0.8, 8), (1.0, 0)])
+    lean = trk(t, [(0, 0), (0.2, 12), (0.8, 12), (1.0, 0)])
     p.add('root', (lean * 0.5, 0, 0))
     p.add('spine', (lean * 0.3, 0, 3 * smoothstep(0, 0.2, t) * (1 - smoothstep(0.8, 1, t))))
     p.add('chest', (lean * 0.2, 0, 6 * smoothstep(0, 0.2, t) * (1 - smoothstep(0.8, 1, t))))
     tilt = trk(t, [(0, 0), (0.22, 12), (0.5, 9), (0.78, 12), (1.0, 0)])
-    p.add('head', (trk(t, [(0, 0), (0.2, 10), (0.8, 10), (1.0, 0)]), -tilt, 0))
+    p.add('head', (trk(t, [(0, 0), (0.2, -10), (0.8, -10), (1.0, 0)]), -tilt, 0))
     p.lid = [trk(t, [(0, 0), (0.18, 0), (0.26, 1), (0.74, 1), (0.84, 0), (1.0, 0)])] * 2
     out, J = solve(p)
     Dc = J['D']['chest']
     stroke = trk(t, [(0, 0), (0.2, 0), (0.35, 1), (0.5, 0), (0.65, 1), (0.8, 0), (1.0, 0)])
     reach = trk(t, [(0, 0), (0.18, 1), (0.82, 1), (1.0, 0)])
     rest = Dc @ (arm_rest(-1)[2] + V(0, -0.03, 0))
-    pet = V(-0.05, -0.30 - 0.06 * stroke, 0.43 - 0.012 * stroke)
+    pet = V(-0.10, -0.215 - 0.05 * stroke, 0.45 - 0.015 * stroke)
     p.hand['R'] = (rest.lerp(pet, reach), (Dc.to_3x3() @ V(-0.9, 0.3, -0.5)).normalized())
     p.r['hand.R'] = (lerp(0, 35 - 15 * stroke, reach), 0, lerp(0, 50, reach))
     p.add('upper_arm.L', (trk(t, [(0, 0), (0.2, 10), (0.8, 10), (1, 0)]), 0, 0))
@@ -1378,18 +1439,19 @@ def a_give(t):
     """0.8 s: offer something with the right hand, palm up."""
     p = Pose()
     reach = trk(t, [(0, 0), (0.25, 1.05), (0.33, 1.0), (0.55, 1.0), (0.8, 0)])
-    lean = 7 * reach
+    lean = 10 * reach
     p.add('root', (lean * 0.5, 0, 0))
     p.add('spine', (lean * 0.3, 0, 4 * reach))
     p.add('chest', (lean * 0.2, 0, 6 * reach))
-    p.add('head', (trk(t, [(0, 0), (0.25, 4), (0.36, 12), (0.5, 6), (0.8, 0)]), -6 * reach, -4 * reach))
+    p.add('head', (trk(t, [(0, 0), (0.25, -8), (0.36, 0), (0.5, -6), (0.8, 0)]), -6 * reach, -4 * reach))
     p.lid = [blink(t, 0.6)] * 2
     out, J = solve(p)
     Dc = J['D']['chest']
     rest = Dc @ (arm_rest(-1)[2] + V(0, -0.03, 0))
-    give = V(-0.06, -0.31, 0.43)
+    give = V(-0.07, -0.225, 0.45)
     p.hand['R'] = (rest.lerp(give, min(reach, 1.0)), (Dc.to_3x3() @ V(-0.9, 0.4, -0.6)).normalized())
     p.r['hand.R'] = (lerp(0, -30, min(reach, 1)), lerp(0, 70, min(reach, 1)), lerp(0, -20, min(reach, 1)))
+    p.hold['R'] = ((-8, 0, 0), 0.6 + 0.4 * min(reach, 1.0))
     p.add('upper_arm.L', (6 * reach, 0, 0))
     return p
 
@@ -1415,8 +1477,8 @@ def a_happy(t):
     up = trk(t, [(0, 0), (0.12, -0.25), (0.24, 1.0), (0.42, 1.05), (0.56, 0.75), (0.68, 0.25), (0.8, 0)])
     wav = math.sin(TAU * t * 4.0) * smoothstep(0.24, 0.3, t) * (1 - smoothstep(0.5, 0.62, t))
     for sd, s in (('L', 1), ('R', -1)):
-        p.add('upper_arm.' + sd, (-12 * up, -s * 112 * up, 0))
-        p.add('forearm.' + sd, (-12 - 12 * (1 - up), -s * (8 * up + 10 * wav), 0))
+        p.add('upper_arm.' + sd, (-6 * up, -s * 98 * up, 0))
+        p.add('forearm.' + sd, (-10 - 12 * (1 - up), -s * (28 * up + 12 * wav), 0))
         p.add('hand.' + sd, (-10, -s * 15 * up, 0))
     p.add('head', (trk(t, [(0, 0), (0.12, 2), (0.26, -14), (0.42, -10), (0.56, 8), (0.66, -3), (0.8, 0)]), 0, 0))
     eyes = trk(t, [(0, 0), (0.2, 0), (0.26, 1), (0.52, 1), (0.6, 0), (0.8, 0)])
@@ -1442,13 +1504,216 @@ def a_yawn(t):
     roll = trk(t, [(0, 0), (0.5, 6), (1.0, 4), (1.3, -2), (1.6, 0)])
     p.add('head', (hb, roll, 0))
     for sd, s in (('L', 1), ('R', -1)):
-        p.add('upper_arm.' + sd, (-14 * st, -s * 128 * rise, 0))
-        p.add('forearm.' + sd, (-10 * rise, -s * 35 * rise * (1 - 0.5 * smoothstep(0.35, 0.6, t)), 0))
+        p.add('upper_arm.' + sd, (-8 * st, -s * 104 * rise, 0))
+        p.add('forearm.' + sd, (-8 * rise, -s * 45 * rise * (1 - 0.3 * smoothstep(0.35, 0.6, t)), 0))
         p.add('hand.' + sd, (-15 * rise, -s * 20 * rise, 0))
     m = trk(t, [(0, 0), (0.3, 0), (0.55, 1.0), (0.95, 1.1), (1.2, 0.0), (1.6, 0)])
     p.mouth = (0.75 * m, 1.35 * m, m)
     lid = trk(t, [(0, 0), (0.3, 0), (0.45, 1), (1.15, 1), (1.3, 0.35), (1.42, 0.5), (1.55, 0), (1.6, 0)])
     p.lid = [lid, lid]
+    return p
+
+
+def a_pet_low(t):
+    """1.0 s: crouch and stroke a baby dino low in front (~0.3 m up)."""
+    p = Pose()
+    k = trk(t, [(0, 0), (0.22, 1.0), (0.8, 1.0), (1.0, 0)])
+    p.root += V(0, 0.02 * k, -0.125 * k)
+    p.add('root', (16 * k, 0, 0))
+    p.add('spine', (6 * k, 0, 3 * k))
+    p.add('chest', (2 * k, 0, 5 * k))
+    tilt = trk(t, [(0, 0), (0.24, 12), (0.5, 9), (0.78, 12), (1.0, 0)])
+    p.add('neck', (-6 * k, 0, 0))
+    p.add('head', (-8 * k, -tilt, 0))
+    p.lid = [trk(t, [(0, 0), (0.2, 0), (0.28, 1), (0.74, 1), (0.84, 0), (1.0, 0)])] * 2
+    for sd, s in (('L', 1), ('R', -1)):
+        p.foot[sd] = (side_pt(ANKLE, s) + V(s * 0.012 * k, 0, 0), 0.0, -s * 8 * k, V(0, 0, 0))
+    out, J = solve(p)
+    Dc = J['D']['chest']
+    stroke = trk(t, [(0, 0), (0.22, 0), (0.37, 1), (0.52, 0), (0.67, 1), (0.82, 0), (1.0, 0)])
+    rest = Dc @ (arm_rest(-1)[2] + V(0, -0.03, 0))
+    pet = V(-0.09, -0.25 - 0.045 * stroke, 0.30 - 0.012 * stroke)
+    p.hand['R'] = (rest.lerp(pet, k), (Dc.to_3x3() @ V(-0.9, 0.3, -0.5)).normalized())
+    p.r['hand.R'] = (lerp(0, 30 - 15 * stroke, k), 0, lerp(0, 45, k))
+    p.add('upper_arm.L', (-25 * k, -12 * k, 0))
+    p.add('forearm.L', (-35 * k, 0, 0))
+    return p
+
+
+def a_use(t):
+    """1.0 s: generic tool with the right hand: lift forward, tip it
+    forward/down with a little to-and-fro (watering can, brush), return."""
+    p = Pose()
+    k = trk(t, [(0, 0), (0.2, 1.0), (0.82, 1.0), (1.0, 0)])
+    tip = trk(t, [(0, 0), (0.22, 0), (0.35, 1.0), (0.45, 0.7), (0.55, 1.0), (0.65, 0.7), (0.75, 1.0),
+                  (0.85, 0), (1.0, 0)])
+    p.add('root', (6 * k, 0, 0))
+    p.add('spine', (3 * k, 0, 4 * k))
+    p.add('chest', (2 * k + 3 * tip, 0, 5 * k))
+    p.add('head', (8 * k, -4 * k, -3 * k))
+    p.lid = [blink(t, 0.86)] * 2
+    out, J = solve(p)
+    Dc = J['D']['chest']
+    rest = Dc @ (arm_rest(-1)[2] + V(0, -0.03, 0))
+    hold = Dc @ V(-0.12, -0.165, 0.40 - 0.02 * tip)
+    p.hand['R'] = (rest.lerp(hold, k), (Dc.to_3x3() @ V(-0.9, 0.5, -0.4)).normalized())
+    p.r['hand.R'] = (lerp(0, -25, k) + 45 * tip, 0, 0)
+    p.hold['R'] = ((60 * tip, 0, -10 * k), 0.6 + 0.4 * k)
+    p.add('upper_arm.L', (6 * k, -6 * k, 0))
+    p.add('forearm.L', (-20 * k, 0, 0))
+    return p
+
+
+DIG_KEYS = [  # t, root dz, lean, twist, R hand (chest rest space), L hand
+    (0.00, 0.000, 4, 0, V(-0.10, -0.150, 0.36), V(0.005, -0.150, 0.47)),
+    (0.22, -0.055, 20, 6, V(-0.07, -0.170, 0.33), V(0.010, -0.170, 0.42)),
+    (0.30, -0.065, 22, 6, V(-0.07, -0.170, 0.32), V(0.010, -0.172, 0.41)),
+    (0.45, -0.050, 14, 0, V(-0.10, -0.120, 0.37), V(0.015, -0.165, 0.38)),
+    (0.65, 0.000, 0, -18, V(-0.13, -0.140, 0.43), V(-0.02, -0.160, 0.49)),
+    (0.78, 0.000, 2, -8, V(-0.11, -0.150, 0.39), V(0.000, -0.150, 0.47)),
+    (0.90, 0.000, 4, 0, V(-0.10, -0.150, 0.36), V(0.005, -0.150, 0.47)),
+]
+
+
+def a_dig(t):
+    """0.9 s: shovel scoop with both hands: thrust down, lever, lift and
+    toss to his right, back to ready (loops cleanly if repeated)."""
+    p = Pose()
+    col = lambda i: [(r[0], r[i]) for r in DIG_KEYS]  # noqa: E731
+    dz, lean, tw = trk(t, col(1)), trk(t, col(2)), trk(t, col(3))
+    p.root += V(0, 0.01 * lean / 22, dz)
+    p.add('root', (lean * 0.55, 0, tw * 0.3))
+    p.add('spine', (lean * 0.3, 0, tw * 0.3))
+    p.add('chest', (lean * 0.15, 0, tw * 0.4))
+    p.add('head', (6 - 0.3 * lean, 0, -0.5 * tw))
+    for sd, s in (('L', 1), ('R', -1)):
+        p.foot[sd] = (side_pt(ANKLE, s) + V(0, -s * 0.03, 0), 0.0, 0.0, V(0, 0, 0))
+    out, J = solve(p)
+    Dc = J['D']['chest']
+    R = V(*trk(t, [(r[0], tuple(r[4])) for r in DIG_KEYS]))
+    L = V(*trk(t, [(r[0], tuple(r[5])) for r in DIG_KEYS]))
+    p.hand['R'] = (Dc @ R, (Dc.to_3x3() @ V(-0.9, 0.5, -0.5)).normalized())
+    p.hand['L'] = (Dc @ L, (Dc.to_3x3() @ V(0.9, 0.4, -0.5)).normalized())
+    p.r['hand.R'] = (-10, 0, 20)
+    p.r['hand.L'] = (0, 0, -40)
+    # shovel (held by hand.R, blade down): angle in the chest frame
+    sh = trk(t, [(0.0, (-28, 0, 0)), (0.22, (-48, 0, 0)), (0.30, (-46, 0, 0)), (0.45, (-72, 0, 0)),
+                 (0.65, (-88, 22, 0)), (0.78, (-45, 6, 0)), (0.9, (-28, 0, 0))])
+    p.hold['R'] = (sh, 1.0)
+    p.lid = [blink(t, 0.70)] * 2
+    return p
+
+
+def a_wave(t):
+    """1.0 s: right arm up, three waves, head tilt, little smile-open mouth."""
+    p = Pose()
+    up = trk(t, [(0, 0), (0.18, 1.05), (0.25, 1.0), (0.8, 1.0), (1.0, 0)])
+    env = smoothstep(0.15, 0.25, t) * (1 - smoothstep(0.75, 0.85, t))
+    wav = math.sin(TAU * 3.0 * (t - 0.2)) * env
+    p.add('upper_arm.R', (-14 * up, 118 * up, 0))
+    p.add('forearm.R', (-8 * up, (40 + 28 * wav) * up, 0))
+    p.add('hand.R', (-10 * up, 15 * up + 10 * wav, 0))
+    p.add('upper_arm.L', (0, -3 * up, 0))
+    p.add('forearm.L', (-8, 0, 0))
+    p.add('chest', (-2 * up, 3 * up, 0))
+    p.add('head', (-4 * up, trk(t, [(0, 0), (0.25, -9), (0.8, -9), (1.0, 0)]) , 0))
+    p.root += V(0, 0, -0.004 + 0.004 * math.cos(TAU * 3.0 * (t - 0.2)) * env)
+    m = trk(t, [(0, 0), (0.2, 0), (0.3, 0.45), (0.7, 0.45), (0.85, 0), (1.0, 0)])
+    p.mouth = (0.8 * m, 0.7 * m, m)
+    p.lid = [blink(t, 0.08)] * 2
+    return p
+
+
+SIT_ROOT = V(0, 0.07, -0.22)
+
+
+def a_sit(t):
+    """3.0 s loop: sitting on the ground, legs forward, hands on the ground
+    beside him, a small sway, kicking feet, a look and a blink."""
+    p = Pose()
+    T = 3.0
+    w = sinw(t, T)
+    b = sinw(t, T / 2)
+    p.root += SIT_ROOT + V(0, 0, 0.002 * b)
+    p.add('root', (-6, 2.0 * w, 0))
+    p.add('spine', (4 - 1.0 * b, 1.5 * w, 0))
+    p.add('chest', (2 - 1.5 * b, 1.5 * w, 0))
+    yaw = trk(t, [(0, 0), (0.9, 0), (1.15, 20), (1.6, 18), (1.85, -6), (2.4, -6), (2.7, 0), (T, 0)])
+    p.add('neck', (0, 0, 0.3 * yaw))
+    p.add('head', (-6 + 2 * b, -3 * w - 0.15 * yaw, 0.6 * yaw))
+    for sd, s, ph in (('L', 1, 0.0), ('R', -1, 0.5)):
+        p.legfk[sd] = True
+        kick = sinw(t, T / 3, ph)
+        p.r['thigh.' + sd] = (-98, -s * 9, s * 4)
+        p.r['shin.' + sd] = (16 + 7 * kick, 0, 0)
+        p.r['foot.' + sd] = (22, 0, -s * 6)
+        p.r['upper_arm.' + sd] = (16 - 2 * b, -s * 16, 0)
+        p.r['forearm.' + sd] = (-14, 0, 0)
+        p.r['hand.' + sd] = (30, 0, 0)
+    p.lid = [max(blink(t, 0.5), blink(t, 2.2))] * 2
+    return p
+
+
+SLEEP_ROOT = V(0.20, 0.14, -0.121)
+
+
+def a_sleep(t):
+    """4.0 s loop: curled on his right side, slow breathing, eyes closed."""
+    p = Pose()
+    T = 4.0
+    b = sinw(t, T / 1)          # one slow breath per loop: inhale, sigh
+    b2 = sinw(t, T / 2)
+    p.root += SLEEP_ROOT + V(0, 0, 0.002 * b)
+    p.add('root', (0, -90, 0))
+    p.add('spine', (12 - 1.5 * b, 4, 0))
+    p.add('chest', (10 - 2.0 * b, 4, 0))
+    p.s['chest'] = (1 + 0.02 * b, 1, 1 + 0.02 * b)
+    p.add('neck', (8, 8, 0))
+    p.add('head', (6 + 1.2 * b2, 12, 0))
+    for sd, s in (('L', 1), ('R', -1)):
+        p.legfk[sd] = True
+        p.r['thigh.' + sd] = (-72 - (6 if s > 0 else 0), -s * 4, 0)
+        p.r['shin.' + sd] = (100 + (8 if s > 0 else 0), 0, 0)
+        p.r['foot.' + sd] = (-20, 0, 0)
+    # arms tucked under the cheek / in front of the chest
+    p.r['upper_arm.R'] = (-70, 10, 0)
+    p.r['forearm.R'] = (-95, 0, 0)
+    p.r['hand.R'] = (-10, 0, 0)
+    p.r['upper_arm.L'] = (-55 - 2 * b, 8, 0)
+    p.r['forearm.L'] = (-70, 0, 0)
+    p.r['hand.L'] = (-20, 0, 0)
+    p.lid = [1.0, 1.0]
+    m = 0.22 + 0.10 * b
+    p.mouth = (0.45 * m / 0.32, 0.55 * m / 0.32, m / 0.32 * 0.6)
+    return p
+
+
+def a_talk(t):
+    """3.0 s loop: chatting: mouth flaps in phrases, hands gesture, head nods."""
+    p = Pose()
+    T = 3.0
+    idle_upper(p, t, T, look=False)
+    env = trk(t, [(0, 0.2), (0.15, 1), (0.9, 1), (1.05, 0.1), (1.3, 0.1), (1.45, 1), (2.45, 1), (2.65, 0.1),
+                  (2.85, 0.2), (T, 0.2)])
+    flap = 0.5 + 0.5 * math.sin(TAU * 5.0 * t) * (0.7 + 0.3 * math.sin(TAU * (2.0 / T) * t))
+    m = env * (0.15 + 0.55 * flap)
+    p.mouth = (0.7 * m, 0.6 * m, m)
+    nod = 4 * math.sin(TAU * (6.0 / T) * t) * env
+    tilt = trk(t, [(0, 0), (0.5, 6), (1.2, -4), (1.9, 7), (2.5, -3), (T, 0)])
+    p.add('head', (nod, -tilt, trk(t, [(0, 0), (0.6, 8), (1.6, -6), (2.4, 4), (T, 0)])))
+    tw = trk(t, [(0, 0), (0.6, 5), (1.6, -5), (2.4, 3), (T, 0)])
+    p.add('chest', (0, 0, tw))
+    gR = trk(t, [(0, 0), (0.2, 0), (0.45, 1), (0.95, 0.8), (1.2, 0.1), (2.0, 0.1), (2.25, 1), (2.6, 0.9),
+                 (2.85, 0), (T, 0)])
+    gL = trk(t, [(0, 0), (1.1, 0), (1.35, 1), (1.85, 0.8), (2.1, 0.0), (2.25, 0.6), (2.6, 0.7), (2.85, 0),
+                 (T, 0)])
+    bob = math.sin(TAU * (6.0 / T) * t)
+    for sd, s, g in (('L', 1, gL), ('R', -1, gR)):
+        p.add('upper_arm.' + sd, (-22 * g, -s * 18 * g, 0))
+        p.add('forearm.' + sd, (-62 * g - 6 * g * bob, -s * 10 * g, 0))
+        p.add('hand.' + sd, (-15 * g, 0, -s * 50 * g))
+    p.lid = [blink(t, 1.15)] * 2
+    p.hold['R'] = ((0, 0, 0), 0.4)
     return p
 
 
@@ -1463,12 +1728,46 @@ ANIMS = [
     ('give', 24, a_give),
     ('happy', 24, a_happy),
     ('yawn', 48, a_yawn),
+    ('pet_low', 30, a_pet_low),
+    ('use', 30, a_use),
+    ('dig', 27, a_dig),
+    ('wave', 30, a_wave),
+    ('sit', 90, a_sit),
+    ('sleep', 120, a_sleep),
+    ('talk', 90, a_talk),
 ]
 
 
 # ===========================================================================
 # Build
 # ===========================================================================
+
+BODY = []
+
+
+def ground_check(arm, body, act, frames):
+    """Print the lowest point of the deformed mesh at a few frames."""
+    tr = arm.animation_data.nla_tracks
+    for t in tr:
+        t.mute = True
+    arm.animation_data.action = act
+    deps = bpy.context.evaluated_depsgraph_get()
+    res = []
+    for f in sorted(set([0, frames // 4, frames // 2, 3 * frames // 4])):
+        bpy.context.scene.frame_set(f)
+        ev = body.evaluated_get(deps)
+        me = ev.to_mesh()
+        zs = [v.co.z for v in me.vertices]
+        xs = [v.co.x for v in me.vertices]
+        ys = [v.co.y for v in me.vertices]
+        res.append('f%d z%.3f x[%.2f,%.2f] y[%.2f,%.2f]' % (f, min(zs), min(xs), max(xs), min(ys), max(ys)))
+        ev.to_mesh_clear()
+    arm.animation_data.action = None
+    for t in tr:
+        t.mute = False
+    bpy.context.scene.frame_set(0)
+    print('[check] %s: %s' % (act.name, '  '.join(res)))
+
 
 def tri_count(ob):
     return sum(len(p.vertices) - 2 for p in ob.data.polygons)
@@ -1481,6 +1780,7 @@ def build_tommy():
     arm = C.armature('tommy_rig', [(n, tuple(h), tuple(t), par) for n, h, t, par in bone_list()])
     read_rest(arm)
     body = build_body(arm)
+    BODY[:] = [body]
     print('[tommy] triangles %d, materials %d (%s)' % (
         tri_count(body), len(body.data.materials), ', '.join(m.name for m in body.data.materials)))
     only = A.get('anims')
@@ -1488,7 +1788,23 @@ def build_tommy():
         if only and name not in only.split(','):
             continue
         bake(arm, name, frames, fn)
-    C.export_glb(os.path.join(OUT, 'tommy.glb'), [arm, body])
+    export_small(os.path.join(OUT, 'tommy.glb'), [arm, body])
+
+
+def export_small(path, objects):
+    """C.export_glb plus the exporter's animation-size optimisation (drops
+    samples that repeat; every channel is kept), to stay under 1 MB."""
+    bpy.ops.object.select_all(action='DESELECT')
+    for o in objects:
+        o.select_set(True)
+    try:
+        bpy.ops.export_scene.gltf(filepath=path, export_format='GLB', export_apply=False,
+                                  export_animations=True, export_yup=True, use_selection=True,
+                                  export_materials='EXPORT', export_nla_strips=True,
+                                  export_optimize_animation_size=True)
+        print('[tdz] wrote', path)
+    except TypeError:
+        C.export_glb(path, objects)
 
 
 def build_cap_model():

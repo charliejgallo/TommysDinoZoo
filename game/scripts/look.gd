@@ -4,6 +4,7 @@ class_name Look
 ## (name, colour) so a scene full of dinos shares a handful of them.
 
 const TOON := preload("res://shaders/toon.gdshader")
+const GLASS := preload("res://shaders/glass.gdshader")  # alpha materials (role `glass`)
 static var _cache := {}
 
 static func apply(root: Node) -> void:
@@ -25,7 +26,7 @@ static func toon_for(src: StandardMaterial3D) -> ShaderMaterial:
 	if _cache.has(key):
 		return _cache[key]
 	var m := ShaderMaterial.new()
-	m.shader = TOON
+	m.shader = GLASS if src.transparency != BaseMaterial3D.TRANSPARENCY_DISABLED else TOON
 	m.resource_name = src.resource_name
 	m.set_shader_parameter("albedo", src.albedo_color)
 	if src.emission_enabled:

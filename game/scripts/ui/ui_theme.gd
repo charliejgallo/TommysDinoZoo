@@ -33,15 +33,28 @@ static func get_theme() -> Theme:
 	t.set_color("font_pressed_color", "Button", ORANGE)
 	t.set_color("font_disabled_color", "Button", BROWN.lightened(0.45))
 	t.set_font_size("font_size", "Button", 32)
+	t.set_stylebox("normal", "LineEdit", _box(Color.WHITE, BROWN.lightened(0.25), 3, 18))
+	t.set_stylebox("focus", "LineEdit", _box(Color.WHITE, GOLD.darkened(0.15), 6, 18))
+	t.set_color("font_color", "LineEdit", BROWN)
+	t.set_color("font_placeholder_color", "LineEdit", BROWN.lightened(0.45))
+	t.set_color("caret_color", "LineEdit", ORANGE)
 	t.set_stylebox("panel", "PanelContainer", _box(CREAM, BROWN, 5, 36))
 	t.set_stylebox("panel", "Panel", _box(CREAM, BROWN, 5, 36))
 	_theme = t
 	return t
 
+static var font: Font
+
 static func _font() -> Font:
-	for p in ["res://assets/fonts/game.ttf", "res://assets/fonts/game.otf"]:
-		if ResourceLoader.exists(p):
-			return load(p)
+	if font:
+		return font
+	# Fredoka (SIL OFL, assets/fonts/OFL.txt), a variable font: semibold
+	if ResourceLoader.exists("res://assets/fonts/Fredoka.ttf"):
+		var fv := FontVariation.new()
+		fv.base_font = load("res://assets/fonts/Fredoka.ttf")
+		fv.variation_opentype = {TextServerManager.get_primary_interface().name_to_tag("wght"): 560}
+		font = fv
+		return font
 	var sf := SystemFont.new()
 	sf.font_names = PackedStringArray(["Arial Rounded MT Bold", "Nunito", "Varela Round", "Segoe UI", "Helvetica Neue"])
 	sf.font_weight = 700

@@ -47,7 +47,7 @@ PAL = {
     'paint_lilac': '#c5a9f2',
     # plants
     'leaf': '#78c85a', 'leaf_dark': '#4e9e4a', 'fern': '#45b884',
-    'fern_dark': '#2f8d6a', 'grass': '#95d65a', 'bark': '#a8714a',
+    'fern_dark': '#2f8d6a', 'grass': '#a2dc5e', 'bark': '#a8714a',
     'plant_stem': '#5d9e3e', 'moss': '#8fcb5c',
     # ground and stone
     'stone': '#c2bbb1', 'stone_dark': '#9a938b', 'soil': '#94603f',
@@ -65,6 +65,9 @@ PAL = {
     'water': '#6fd2ec', 'glass': ('#d4f2fb', {'alpha': 0.45, 'rough': 0.1}),
     'bulb': ('#fff0a0', {'emit': 3.0}), 'led': ('#ff7f9c', {'emit': 2.5}),
     'paper': '#fffaf0', 'paper_yellow': '#fff1a8', 'paper_blue': '#d4ecff',
+    'food': '#8fd36a', 'food_bits': '#ffa04a',
+    'carrot': '#ff8a35', 'cloth': '#efdcb6', 'poop': '#8d5b3b',
+    'cardboard': '#dcaa6a', 'tape': '#f3d9a0', 'eggshell': '#fff3dc',
     'cork': '#e3b47a', 'bag': '#f07c6c', 'bristle': '#f4dca6',
     'fish': '#6fb6ec', 'fish_belly': '#e8f5ff', 'eye_white': '#ffffff',
     'pupil': '#1d1b22', 'blush': '#ff9db0',

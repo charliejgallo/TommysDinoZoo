@@ -42,6 +42,8 @@ var world_load: Callable    # (Dictionary) -> void
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_PAUSABLE
 	load_settings()
+	ThemeDB.fallback_font = UiTheme._font()
+	get_tree().root.theme = UiTheme.get_theme()
 
 func _process(dt: float) -> void:
 	if not running:

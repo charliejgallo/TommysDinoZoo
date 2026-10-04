@@ -27,10 +27,18 @@ Conventions (see docs/ART-SPEC.md):
     thigh/shin/foot.L/.R, fthigh/fshin/ffoot.L/.R (quads) or arm/forearm.L/.R
     (bipeds), wing/wing2.L/.R (fliers), eyelid.L/.R.
   * eyelid.L/.R close by SCALE: (1,1,1) = closed (the rest pose), open is
-    keyed as scale (1, 0.04, 0.15) in the bone's local axes (the lid folds up
+    keyed as scale (0.4, 0.03, 0.06) in the bone's local axes (the lid folds up
     into the top rim of the eye; Y runs down across the eye, Z out of it).
   * every action keys every bone (rotation, location, scale) on every frame,
     so switching animations in Godot never leaves a bone behind.
+
+Adding a species: copy the closest dict in dinos.py (TRIKE quad, BRACHIO
+sauropod, RAPTOR/TREX biped, PTERA flier, PLESIO swimmer drafts), change the
+numbers, palette and `parts` (features: horns, frill, beak, spots, stripes,
+feathers, ridge, plates, sail, bump), set `speeds` per age, register it in
+SPECIES and run `--only <id>_baby,<id>_juv,<id>_adult --stats`. Per-species
+animation tweaks go in spec['moves'] (stance, clap, hop, *_speed/_duty/_reach,
+sleep_fwd, sleep_lift); new generic behaviour belongs in Moves.
 
 Posing works in "semantic" angles: pitch (+ = nose down, about world X),
 yaw (+ = turn to its left, about world Z), roll (+ = top to its left, about
@@ -173,17 +181,15 @@ def ell(name, m, c, r, rot=None, seg=20, rings=12, deform=None, keep=None):
     return _mk(name, m, bm)
 
 
-def tube(name, m, pts, radii, seg=14, flat=None, nrm=None, cap=True):
+def tube(name, m, pts, radii, seg=14, flat=None, nrm=None, cap=True, sub=4):
     """Swept tube with rounded caps. `flat` = per-point thickness ratio of
     the section along `nrm` (a world direction; the section is wide across
-    it). Without `nrm` it is C.tube's frame (tdz_common)."""
-    if nrm is None and flat is None:
-        return C.tube(name, m, pts, radii, seg=seg, cap=cap)
+    it, default up). `cap`: True/'both', 'start', 'end' or False (ends
+    hidden inside other parts need no cap). `sub` = rings per span."""
     P = [V(p) for p in pts]
     R = list(radii)
     Fl = list(flat) if flat else [1.0] * len(P)
     dp, dr, df = [], [], []
-    sub = 4
     for i in range(len(P) - 1):
         p0 = P[max(i - 1, 0)]
         p1, p2 = P[i], P[i + 1]
@@ -224,8 +230,13 @@ def tube(name, m, pts, radii, seg=14, flat=None, nrm=None, cap=True):
         ra, rb = rings[i][0], rings[i + 1][0]
         for k in range(seg):
             bm.faces.new((ra[k], ra[(k + 1) % seg], rb[(k + 1) % seg], rb[k]))
-    if cap:
-        for end, sign in ((rings[0], -1), (rings[-1], 1)):
+    ends = []
+    if cap in (True, 'both', 'start'):
+        ends.append((rings[0], -1))
+    if cap in (True, 'both', 'end'):
+        ends.append((rings[-1], 1))
+    if ends:
+        for end, sign in ends:
             ring, p, t, b, a, r, f = end
             if r < 1e-5:
                 continue
@@ -298,7 +309,7 @@ def slab(name, m, fn, nu, nv, thick, ref=None):
 
 
 def decal(name, m, target, center, normal, ru, rv=None, u_axis=None,
-          lift=0.003, seg=14):
+          lift=0.003, seg=12, nr=2):
     """Disc of radii (ru, rv) shrink-wrapped onto `target` (by ray casting
     along -normal), its ru axis along `u_axis` (default horizontal)."""
     rv = ru if rv is None else rv
@@ -317,6 +328,8 @@ def decal(name, m, target, center, normal, ru, rv=None, u_axis=None,
         o = p + nrm * 0.6
         lo, ld = inv @ o, (inv.to_3x3() @ -nrm).normalized()
         hit, loc, n, _ = tgt.ray_cast(lo, ld)
+        if not hit:             # off the edge: wrap onto the nearest surface
+            hit, loc, n, _ = tgt.closest_point_on_mesh(inv @ p)
         if hit:
             w = tgt.matrix_world @ loc
             wn = (tgt.matrix_world.to_3x3() @ n).normalized()
@@ -326,7 +339,6 @@ def decal(name, m, target, center, normal, ru, rv=None, u_axis=None,
     bm = bmesh.new()
     c = bm.verts.new(project(V(center)))
     rings = [[c]]
-    nr = 2
     for k in range(1, nr + 1):
         f = k / nr
         ring = []
@@ -367,6 +379,13 @@ def project_pts(target, pts, normal, lift=0.002):
         else:
             out.append(V(p))
     return out
+
+
+def reset():
+    """C.reset() plus forgetting C.mat's cached (now deleted) materials, so
+    several models can be built in one Blender run."""
+    C.reset()
+    C._mats.clear()
 
 
 def tris(ob):
@@ -592,12 +611,12 @@ class Rig:
 
 AGES = {
     # factor tables applied to a species' adult parameters
-    'baby': dict(height=0.45, head=1.62, eye=1.30, leg=0.66, snout=0.55,
+    'baby': dict(height=0.45, head=1.58, eye=1.30, leg=0.80, snout=0.55,
                  neck=0.62, tail=0.62, round=0.55, horn=0.0, frill=0.62,
-                 plate=0.55, crest=0.75, arm=0.9, body=1.0, lod=0.75),
-    'juv': dict(height=0.70, head=1.25, eye=1.12, leg=0.84, snout=0.80,
+                 plate=0.55, crest=0.75, arm=0.9, body=1.0, lod=0.66),
+    'juv': dict(height=0.70, head=1.25, eye=1.12, leg=0.86, snout=0.80,
                 neck=0.82, tail=0.84, round=0.25, horn=0.55, frill=0.84,
-                plate=0.8, crest=0.9, arm=0.95, body=1.0, lod=0.9),
+                plate=0.8, crest=0.9, arm=0.95, body=1.0, lod=0.84),
     'adult': dict(height=1.0, head=1.0, eye=1.0, leg=1.0, snout=1.0,
                   neck=1.0, tail=1.0, round=0.0, horn=1.0, frill=1.0,
                   plate=1.0, crest=1.0, arm=1.0, body=1.0, lod=1.0),
@@ -737,9 +756,14 @@ class Dino:
                 hip = tp(side * xw, yy, -rz * 0.32)
                 spread = s.get('splay', 0.0)
                 ank = V((side * (xw * 1.04 + spread), hip.y + (0.02 if front else -0.02) * ry, fh))
+                if self.plan == 'swimmer':      # flippers reach out sideways
+                    ank = hip + V((side * s.get('flipper', 1.0) * rx, (0.25 if not front else 0.1) * ry,
+                                   -rz * 0.25))
                 bend = s.get('knee', 0.06) * (1 if front else -1)
                 knee = (hip + ank) / 2 + V((0, bend * (hip.z - ank.z), 0))
                 toe = ank + FWD * lr * 1.25
+                if self.plan == 'swimmer':
+                    toe = ank + (V((side, 0.6, 0)).normalized()) * lr * 3.0
                 tag = ('f' if front else '') + ('L' if side > 0 else 'R')
                 legs.append(dict(tag=tag, front=front, side=side, hip=hip, knee=knee,
                                  ankle=ank, toe=toe, foot_h=fh))
@@ -790,7 +814,7 @@ class Dino:
         L['legs'] = legs
         arms = []
         al = s.get('arm_len', 0.5) * ry * A['arm']
-        for side in (1, -1):
+        for side in ((1, -1) if self.plan != 'flier' else ()):
             sh = tp(side * rx * 0.72, -ry * 0.55, rz * s.get('arm_z', 0.0))
             el = sh + V((side * al * 0.12, -al * 0.25, -al * 0.5))
             hd = el + V((0, -al * 0.5, al * 0.05))
@@ -880,7 +904,7 @@ class Dino:
 
     # -------------------------------------------------------- build
     def build(self):
-        C.reset()
+        reset()
         self.layout()
         self.eyes = []
         self.extra_bones = []
@@ -891,6 +915,11 @@ class Dino:
             FEATURES[feat](self, **opts)
         arm = self.arm
         objs = []
+        stat = {}
+        for ob, how in self.parts:
+            k = ob.name.split('.')[0]
+            stat[k] = stat.get(k, 0) + tris(ob)
+        self.tri_stats = sorted(stat.items(), key=lambda kv: -kv[1])
         for ob, how in self.parts:
             skin(ob, arm, how)
             objs.append(ob)
@@ -913,8 +942,9 @@ class Dino:
             c = P - N * re * flat * e.get('sink', 0.42)
             F = frame(N)
             ry = re * vert * 1.12
-            top = c + F.col[1] * ry
-            bot = c - F.col[1] * ry
+            back = N * re * flat * 0.8      # the lid folds into a point behind the eye
+            top = c + F.col[1] * ry - back
+            bot = c - F.col[1] * ry - back
             self.eyes.append(dict(side=side, P=P, n=N, c=c, F=F, re=re, flat=flat, vert=vert,
                                   bone='eyelid.' + ('L' if side > 0 else 'R'),
                                   lid_top=top, lid_bot=bot))
@@ -951,20 +981,20 @@ def build_torso(D):
     L, s = D.L, D.spec
     Ct, tr, rot = L['torso_c'], L['torso_r'], L['torso_rot_deg']
     Rt = _rotm(rot)
-    flat = s.get('belly_flat', 0.55)
+    flat = s.get('belly_flat', 0.55 if D.plan not in ('biped', 'flier') else 0.85)
 
     def fl(u):
         if u.z < -flat:
             u.z = -flat + (u.z + flat) * 0.55
         return u
-    t = D.add(ell('torso', D.m('body'), Ct, tr, rot, seg=D.lod(34), rings=D.lod(18),
+    t = D.add(ell('torso', D.m('body'), Ct, tr, rot, seg=D.lod(30), rings=D.lod(16),
                   deform=fl), _torso_skin(D))
     D.ref['torso'] = t
     bo = s.get('belly_off', (0.0, -0.06, -0.30) if D.plan != 'biped' else (0.0, -0.30, -0.10))
     bs = s.get('belly_r', (0.84, 0.86, 0.76) if D.plan != 'biped' else (0.80, 0.78, 0.86))
     bc = Ct + Rt @ V((bo[0] * tr[0], bo[1] * tr[1], bo[2] * tr[2]))
     D.add(ell('belly', D.m('belly'), bc, tuple(a * b for a, b in zip(tr, bs)), rot,
-              seg=D.lod(28), rings=D.lod(14), deform=fl), _torso_skin(D))
+              seg=D.lod(24), rings=D.lod(12), deform=fl), _torso_skin(D))
 
 
 def build_neck(D):
@@ -980,7 +1010,7 @@ def build_neck(D):
     taper = s.get('neck_taper', 0.82)
     R = [nr * lerp(1.15, taper, i / (n - 1)) for i in range(n)]
     bones = ['spine'] + D.neck + ['head']
-    D.add(tube('neck', D.m('body'), P, R, seg=D.lod(18)), ('near', bones, 4.0, 2))
+    D.add(tube('neck', D.m('body'), P, R, seg=D.lod(16), cap=False, sub=3), ('near', bones, 4.0, 2))
     if s.get('throat', D.plan in ('biped', 'sauropod', 'flier', 'swimmer')):
         Q = []
         for i, p in enumerate(P):
@@ -990,7 +1020,7 @@ def build_neck(D):
             if side.dot(FWD + UP * -0.3) < 0:
                 side = -side
             Q.append(p + side * R[i] * 0.42)
-        D.add(tube('throat', D.m('belly'), Q[1:-1], [r * 0.66 for r in R[1:-1]], seg=D.lod(14)),
+        D.add(tube('throat', D.m('belly'), Q[1:-1], [r * 0.66 for r in R[1:-1]], seg=D.lod(12), sub=3),
               ('near', bones, 4.0, 2))
 
 
@@ -999,7 +1029,7 @@ def build_head(D):
     h = s['head']
     hc, hr, snc, snr = L['head_c'], L['head_r'], L['snout_c'], L['snout_r']
     body = D.m('body')
-    hd = D.add(ell('head', body, hc, hr, seg=D.lod(30), rings=D.lod(16),
+    hd = D.add(ell('head', body, hc, hr, seg=D.lod(28), rings=D.lod(14),
                    deform=h.get('deform')), ('rigid', 'head'))
     D.ref['head'] = hd
     tap = h.get('snout_taper', (0.22, 0.12))
@@ -1011,7 +1041,7 @@ def build_head(D):
         if u.z < -0.5:
             u.z = -0.5 + (u.z + 0.5) * 0.6
         return u
-    snout = D.add(ell('snout', body, snc, snr, seg=D.lod(26), rings=D.lod(14), deform=sn),
+    snout = D.add(ell('snout', body, snc, snr, seg=D.lod(24), rings=D.lod(12), deform=sn),
                   ('rigid', 'head'))
     D.ref['snout'] = snout
     if h.get('cheeks'):
@@ -1019,7 +1049,7 @@ def build_head(D):
         for side in (1, -1):
             cc = hc + V((side * hr[0] * ck[0], -hr[1] * ck[1], -hr[2] * ck[2]))
             D.add(ell('cheek', body, cc, (hr[0] * ck[3], hr[0] * ck[3], hr[0] * ck[3] * 0.85),
-                      seg=D.lod(16), rings=D.lod(10)), ('rigid', 'head'))
+                      seg=D.lod(14), rings=D.lod(8)), ('rigid', 'head'))
     # lower jaw, mouth inside, tongue
     jm = D.m(h.get('jaw_mat', 'belly'))
     jc = snc - UP * snr[2] * h.get('jaw_drop', 0.5) + V((0, snr[1] * 0.10, 0))
@@ -1039,7 +1069,7 @@ def build_head(D):
     # smile: a line round the front of the snout, corners curling up
     sm = h.get('smile', dict(width=62, z=-0.30, curl=0.22))
     pts = []
-    nn = 9
+    nn = 7
     for i in range(nn):
         u = -1 + 2 * i / (nn - 1)
         a = math.radians(u * sm['width'])
@@ -1050,7 +1080,7 @@ def build_head(D):
     for p in pts:
         d = (p - (snc + UP * (p.z - snc.z))).normalized()
         proj.append(project_pts(snout, [p], d, lift=0.0015)[0])
-    D.add(tube('smile', D.m('mouth'), proj, [snr[0] * 0.035] * len(proj), seg=6),
+    D.add(tube('smile', D.m('mouth'), proj, [snr[0] * 0.035] * len(proj), seg=5, sub=2),
           ('rigid', 'head'))
     # nostrils
     if h.get('nostrils', True):
@@ -1058,12 +1088,12 @@ def build_head(D):
             p, n = on_ell(snc, snr, side * h.get('nostril_az', 20), h.get('nostril_el', 30))
             D.add(ell('nostril', D.m('mouth'), p - n * snr[0] * 0.02,
                       (snr[0] * 0.08, snr[0] * 0.06, snr[0] * 0.06), rot=frame(n, UP),
-                      seg=8, rings=5), ('rigid', 'head'))
+                      seg=6, rings=4), ('rigid', 'head'))
     if h.get('teeth'):
         for side in (1, -1):
             p = snc + V((side * snr[0] * 0.38, -snr[1] * 0.78, -snr[2] * 0.42))
             D.add(tube('fang', D.m('horn'), [p + UP * snr[2] * 0.06, p - UP * snr[2] * 0.14],
-                       [snr[0] * 0.07, snr[0] * 0.035], seg=6), ('rigid', 'head'))
+                       [snr[0] * 0.07, snr[0] * 0.035], seg=6, sub=1, cap='end'), ('rigid', 'head'))
 
 
 def build_eyes(D):
@@ -1071,7 +1101,7 @@ def build_eyes(D):
         c, F, re, flat, vert, N = e['c'], e['F'], e['re'], e['flat'], e['vert'], e['n']
         lo = D.lod(18, 10)
         dome = D.add(ell('eye', D.m('eye_white'), c, (re, re * vert, re * flat), rot=F,
-                         seg=lo, rings=D.lod(12, 8)), ('rigid', 'head'))
+                         seg=lo, rings=D.lod(10, 8), keep=lambda u: u.z > -0.5), ('rigid', 'head'))
         front = c + N * re * flat
         g = FWD - N * N.dot(FWD)
         g = g.normalized() if g.length > 1e-5 else V((0, 0, 0))
@@ -1082,27 +1112,27 @@ def build_eyes(D):
         ps = D.spec['eye'].get('pupil', 0.62)
         if 'iris' in D.spec['pal']:
             D.add(decal('iris', D.m('iris'), dome, pc, N, re * ps * 1.1, re * ps * 1.18,
-                        u_axis=hor, lift=0.0012), ('rigid', 'head'))
+                        u_axis=hor, lift=re * 0.015 + 0.0005, nr=3), ('rigid', 'head'))
             ps *= 0.62
         D.add(decal('pupil', D.m('pupil'), dome, pc, N, re * ps, re * ps * 1.1, u_axis=hor,
-                    lift=0.0022), ('rigid', 'head'))
+                    lift=re * 0.03 + 0.001, nr=3), ('rigid', 'head'))
         w = V((-0.6, 0, 0.8)) - N * N.dot(V((-0.6, 0, 0.8)))
         w.normalize()
-        D.add(decal('glint', D.m('eye_white'), dome, pc + w * re * 0.30, N, re * 0.21,
-                    lift=0.0034, seg=10), ('rigid', 'head'))
+        D.add(decal('glint', D.m('eye_white'), dome, pc + w * re * 0.28, N, re * 0.21,
+                    lift=re * 0.055 + 0.0015, seg=10, nr=2), ('rigid', 'head'))
         D.add(decal('glint2', D.m('eye_white'), dome, pc - w * re * 0.30, N, re * 0.09,
-                    lift=0.0034, seg=8), ('rigid', 'head'))
+                    lift=re * 0.055 + 0.0015, seg=8, nr=1), ('rigid', 'head'))
         # the lid: closed at rest (bone scale 1), folded into the top rim
-        lr = (re * 1.13, re * vert * 1.13, re * flat * 1.1 + 0.006)
+        lr = (re * 1.13, re * vert * 1.13, re * flat * 1.1 + re * 0.09 + 0.004)
         lid = D.add(ell('lid', D.m('body'), c, lr, rot=F, seg=lo, rings=D.lod(12, 8),
                         keep=lambda u: u.z > -0.35), ('rigid', e['bone']))
         pts = []
-        for i in range(9):
-            u = -1 + 2 * i / 8
+        for i in range(7):
+            u = -1 + 2 * i / 6
             p = c + F.col[0] * u * re * 0.86 - F.col[1] * re * vert * (0.05 + 0.32 * (1 - u * u))
             pts.append(p)
         pts = project_pts(lid, pts, N, lift=0.001)
-        D.add(tube('lash', D.m('pupil'), pts, [re * 0.07] * len(pts), seg=6),
+        D.add(tube('lash', D.m('pupil'), pts, [re * 0.07] * len(pts), seg=D.lod(5, 4), sub=2),
               ('rigid', e['bone']))
         # cheek blush below and behind the eye
         if D.spec.get('blush', True):
@@ -1123,7 +1153,7 @@ def build_tail(D):
     tip = s['tail'].get('tip', 0.16)
     R = [tr * lerp(1.0, tip, (i / (n - 1)) ** 0.9) for i in range(n)]
     fl = s['tail'].get('flat', 0.85)
-    t = D.add(tube('tail', D.m('body'), P, R, seg=D.lod(18), flat=[fl] * n, nrm=UP),
+    t = D.add(tube('tail', D.m('body'), P, R, seg=D.lod(16), flat=[fl] * n, nrm=UP, cap='end', sub=3),
               ('near', ['root'] + D.tail, 4.0, 2))
     D.ref['tail'] = t
 
@@ -1144,6 +1174,14 @@ def build_legs(D):
         hip, knee, ank, toe = lg['hip'], lg['knee'], lg['ankle'], lg['toe']
         fr = s.get('fleg_r', 1.0) if lg['front'] else 1.0
         r = lr * fr
+        if D.plan == 'swimmer':
+            D.add(tube('leg', D.m('body'), [hip, knee, ank], [r * 1.2, r, r * 0.9], seg=D.lod(12),
+                       cap=False, sub=3), ('near', [lg['thigh'], lg['shin']], 5.0, 2))
+            d = (toe - ank)
+            D.add(ell('flipper', D.m('body'), ank + d * 0.5, (r * 1.3, d.length * 0.75, r * 0.35),
+                      rot=V((0, 1, 0)).rotation_difference(d.normalized()), seg=D.lod(14),
+                      rings=D.lod(8)), ('rigid', lg['foot']))
+            continue
         how = ('near', [lg['thigh'], lg['shin']], 5.0, 2)
         if biped:
             mid = (hip + knee) / 2
@@ -1152,19 +1190,19 @@ def build_legs(D):
             D.add(ell('thigh', D.m('body'), mid + V((0, 0, d.length * 0.05)),
                       (r * th * 0.8, r * th, d.length * 0.62 + r * 0.4),
                       rot=V((0, 0, 1)).rotation_difference(d.normalized()),
-                      seg=D.lod(18), rings=D.lod(12)), ('rigid', lg['thigh']))
+                      seg=D.lod(16), rings=D.lod(10)), ('rigid', lg['thigh']))
             D.add(tube('shin', D.m('body'), [knee, (knee + ank) / 2, ank], [r * 1.1, r * 0.9, r * 0.8],
-                       seg=D.lod(14)), ('near', [lg['thigh'], lg['shin']], 6.0, 2))
+                       seg=D.lod(12), cap=False, sub=3), ('near', [lg['thigh'], lg['shin']], 6.0, 2))
         else:
             D.add(tube('leg', D.m('body'), [hip, knee, ank + UP * lg['foot_h'] * 0.6],
-                       [r * 1.25, r * 1.02, r * 0.95], seg=D.lod(16)), how)
+                       [r * 1.25, r * 1.02, r * 0.95], seg=D.lod(14), cap=False, sub=3), how)
         # foot: a soft flat-bottomed pad with toenails
         fh = lg['foot_h']
         flen = (toe - ank).length
         fc = ank + (toe - ank) * (0.30 if not biped else 0.42)
         frr = (r * (1.18 if not biped else 1.05), max(flen * (0.62 if biped else 0.75), r * 1.15), fh * 1.05)
         fc = V((fc.x, fc.y, frr[2] * 0.62))
-        foot = D.add(ell('foot', D.m('body'), fc, frr, seg=D.lod(16), rings=D.lod(10),
+        foot = D.add(ell('foot', D.m('body'), fc, frr, seg=D.lod(14), rings=D.lod(8, 6),
                          deform=_flat_bottom(0.62)), ('rigid', lg['foot']))
         nails = s.get('toes', 3)
         for i in range(nails):
@@ -1172,7 +1210,7 @@ def build_legs(D):
             p, n = on_ell(fc, frr, az, -8)
             nr = r * (0.26 if not biped else 0.22)
             D.add(ell('nail', D.m('horn'), p + n * nr * 0.2, (nr, nr * 0.9, nr * 0.75),
-                      rot=frame(n, UP), seg=8, rings=6), ('rigid', lg['foot']))
+                      rot=frame(n, UP), seg=D.lod(8, 6), rings=4), ('rigid', lg['foot']))
         del foot
 
 
@@ -1183,7 +1221,8 @@ def build_arms(D):
     ar = L['arm_r']
     for a in D.arms:
         sh, el, hd = a['sh'], a['el'], a['hand']
-        D.add(tube('arm', D.m('body'), [sh, el, hd], [ar * 1.1, ar * 0.85, ar * 0.8], seg=D.lod(12)),
+        D.add(tube('arm', D.m('body'), [sh, el, hd], [ar * 1.1, ar * 0.85, ar * 0.8], seg=D.lod(10),
+                   cap=False, sub=3),
               ('near', [a['arm'], a['forearm']], 5.0, 2))
         d = (hd - el).normalized()
         D.add(ell('hand', D.m('body'), hd + d * ar * 0.25, (ar * 0.95, ar * 1.0, ar * 0.85),
@@ -1191,7 +1230,7 @@ def build_arms(D):
         for i, dx in enumerate((-0.45, 0.45)):
             b = hd + d * ar * 0.9 + V((dx * ar, 0, -ar * 0.2))
             D.add(tube('claw', D.m('horn'), [b, b + d * ar * 0.5 - UP * ar * 0.25],
-                       [ar * 0.26, ar * 0.08], seg=6), ('rigid', a['forearm']))
+                       [ar * 0.26, ar * 0.08], seg=6, sub=2, cap='end'), ('rigid', a['forearm']))
 
 
 def build_wings(D):
@@ -1237,7 +1276,7 @@ def f_horns(D, horns=(), nub=0.18):
             ln = hn['len'] * hr * D.A['horn']
             rr = hn['r'] * hr * (0.75 + 0.25 * D.A['horn'])
             if ln < rr * 1.4:          # a nub
-                rn = rr * (1.0 if D.age == 'baby' else 1.1)
+                rn = rr * (0.8 if D.age == 'baby' else 1.0)
                 D.add(ell('nub', D.m('horn'), p + n * rn * 0.35, (rn, rn, rn * 0.9),
                           rot=frame(n, FWD), seg=10, rings=7), ('rigid', 'head'))
                 continue
@@ -1249,11 +1288,11 @@ def f_horns(D, horns=(), nub=0.18):
             m1 = b + d * ln * 0.5
             t = m1 + (d * 0.5 + cu * 0.5).normalized() * ln * 0.5
             D.add(tube('horn', D.m('horn'), [b, m1, t], [rr, rr * 0.62, rr * 0.16],
-                       seg=D.lod(12, 8)), ('rigid', 'head'))
+                       seg=D.lod(12, 8), cap='end', sub=3), ('rigid', 'head'))
 
 
 def f_frill(D, r=1.5, tilt_deg=40, span_deg=230, scallops=7, scallop=0.07,
-            thick=0.16, up=0.40, back=0.30, cup=0.10, knobs=True, spots=6):
+            thick=0.16, up=0.40, back=0.30, cup=0.10, wrap=0.35, knobs=True, spots=6):
     """A big rounded fan behind the head (ceratopsians); r, thick, up, back
     are fractions of the head radius."""
     L = D.L
@@ -1270,9 +1309,11 @@ def f_frill(D, r=1.5, tilt_deg=40, span_deg=230, scallops=7, scallop=0.07,
         rho = R * v * (1 + sc * math.cos(scallops * a) * v ** 2)
         x = rho * math.sin(a)
         w = rho * math.cos(a)
-        return fc + V((x, 0, 0)) + nrm_up * w + V((0, cup * R * (rho / R) ** 2, 0))
+        # cupped like a shield and wrapped forward at the sides (a collar)
+        return fc + V((x, 0, 0)) + nrm_up * w + V((0, cup * R * (rho / R) ** 2
+                                                    - wrap * R * (x / R) ** 2, 0))
     front = V((0, -math.cos(ti), math.sin(ti)))
-    fr = D.add(slab('frill', D.m('accent'), fn, D.lod(36), D.lod(8, 6), thick * hr[2], ref=front),
+    fr = D.add(slab('frill', D.m('accent'), fn, D.lod(30), D.lod(6, 5), thick * hr[2], ref=front),
                ('rigid', 'head'))
     rng = [(0.30, 0.62, 0.11), (0.70, 0.62, 0.11), (0.5, 0.80, 0.10), (0.14, 0.82, 0.08),
            (0.86, 0.82, 0.08), (0.5, 0.52, 0.08), (0.22, 0.44, 0.07), (0.78, 0.44, 0.07)]
@@ -1281,14 +1322,20 @@ def f_frill(D, r=1.5, tilt_deg=40, span_deg=230, scallops=7, scallop=0.07,
         D.add(decal('fspot', D.m('spots'), fr, p + front * 0.02, front, sz * R, lift=0.002),
               ('rigid', 'head'))
     if knobs and D.age != 'baby':
-        k = scallops * 2 - 1 if D.age == 'adult' else scallops
-        for i in range(k):
-            u = 0.06 + 0.88 * i / (k - 1)
-            p = V(fn(u, 1.0))
-            dr = (p - fc).normalized()
-            rk = R * 0.075
-            D.add(ell('knob', D.m('horn'), p + dr * rk * 0.2, (rk, rk, rk), seg=8, rings=6),
-                  ('rigid', 'head'))
+        # one round knob on each scallop peak
+        kk = 0
+        while True:
+            a = TAU * kk / scallops
+            if a > span / 2 * 0.92:
+                break
+            for a2 in ((a, -a) if kk else (a,)):
+                u = (a2 + span / 2) / span
+                p = V(fn(u, 1.0))
+                dr = (p - fc).normalized()
+                rk = R * (0.085 if D.age == 'adult' else 0.06)
+                D.add(ell('knob', D.m('horn'), p + dr * rk * 0.1, (rk, rk, rk), seg=8, rings=5),
+                      ('rigid', 'head'))
+            kk += 1
 
 
 def f_spots(D, on='torso', spots=(), mat='spots'):
@@ -1333,7 +1380,7 @@ def f_stripes(D, n=4, width=0.16, length=0.8, start=0.1, end=0.75, tail=3, mat='
         j = min(int(k), len(pts) - 2)
         p = pts[j].lerp(pts[j + 1], k - j)
         r = tr0 * lerp(1.0, 0.3, f)
-        D.add(decal('tstripe', D.m(mat), D.ref['tail'], p + UP * r, UP, r * 1.0, r * 0.32,
+        D.add(decal('tstripe', D.m(mat), D.ref['tail'], p + UP * r, UP, r * 0.72, r * 0.3,
                     u_axis=V((1, 0, 0)), lift=0.003), ('near', ['root'] + D.tail, 4.0, 2))
 
 
@@ -1351,7 +1398,7 @@ def f_feathers(D, crest=(), arms=0, tail_tuft=0, ruff=0, mat='accent'):
         m1 = b + V((xo * ln * 0.3, bk * ln * 0.3, ln * 0.55))
         t = b + V((xo * ln * 0.7, bk * ln, ln * 0.85))
         D.add(tube('crest', D.m(mat), [b, m1, t], [wd * hr[2] * k, wd * hr[2] * 0.75 * k, wd * hr[2] * 0.15],
-                   seg=8, flat=[0.4, 0.35, 0.3], nrm=V((1, 0, 0))), ('rigid', 'head'))
+                   seg=6, sub=2, cap='end', flat=[0.4, 0.35, 0.3], nrm=V((1, 0, 0))), ('rigid', 'head'))
     for a in D.arms:
         el, hd = a['el'], a['hand']
         for j in range(arms):
@@ -1360,7 +1407,7 @@ def f_feathers(D, crest=(), arms=0, tail_tuft=0, ruff=0, mat='accent'):
             ln = L['arm_r'] * (2.2 - 0.5 * j) * k
             d = V((a['side'] * 0.3, 0.8, -0.5)).normalized()
             D.add(tube('afeather', D.m(mat), [b, b + d * ln * 0.5, b + d * ln + V((0, 0, -ln * 0.1))],
-                       [L['arm_r'] * 0.55, L['arm_r'] * 0.45, L['arm_r'] * 0.1], seg=8,
+                       [L['arm_r'] * 0.55, L['arm_r'] * 0.45, L['arm_r'] * 0.1], seg=6, sub=2, cap='end',
                        flat=[0.35, 0.3, 0.3], nrm=V((a['side'], 0, 0.3))), ('rigid', a['forearm']))
     if tail_tuft:
         pts = L['tail_pts']
@@ -1373,7 +1420,7 @@ def f_feathers(D, crest=(), arms=0, tail_tuft=0, ruff=0, mat='accent'):
             dd = (d + V((sx, 0, 0.15))).normalized()
             ln = tr * 2.6 * k
             D.add(tube('tfeather', D.m(mat), [b, b + dd * ln * 0.5, b + dd * ln + UP * ln * 0.15],
-                       [tr * 0.5, tr * 0.42, tr * 0.08], seg=8, flat=[0.35, 0.3, 0.3], nrm=UP),
+                       [tr * 0.5, tr * 0.42, tr * 0.08], seg=6, sub=2, cap='end', flat=[0.35, 0.3, 0.3], nrm=UP),
                   ('rigid', D.tail[-1]))
     if ruff:
         pts = L['neck_pts']
@@ -1386,7 +1433,7 @@ def f_feathers(D, crest=(), arms=0, tail_tuft=0, ruff=0, mat='accent'):
             ln = nr * 1.1 * k
             D.add(tube('ruff', D.m(mat), [b, b + o * ln * 0.5 + V((0, ln * 0.3, 0)),
                                           b + o * ln * 0.8 + V((0, ln * 0.7, 0))],
-                       [nr * 0.3, nr * 0.25, nr * 0.05], seg=8, flat=[0.4, 0.35, 0.3], nrm=o),
+                       [nr * 0.3, nr * 0.25, nr * 0.05], seg=6, sub=2, cap='end', flat=[0.4, 0.35, 0.3], nrm=o),
                   ('near', ['spine'] + D.neck + ['head'], 4.0, 2))
 
 
@@ -1400,7 +1447,6 @@ def f_ridge(D, n=9, size=0.16, start=0.05, end=0.75, tail=4, mat='accent', round
     torso = D.ref['torso']
     for i in range(n):
         f = lerp(start, end, i / max(n - 1, 1))
-        p, nrm = on_ell(V((0, 0, 0)), tr, 180, lerp(15, 85, 1 - f) if False else lerp(25, 88, 1 - abs(f - 0.55) * 1.6))
         p, nrm = on_ell(V((0, 0, 0)), tr, 0 if f < 0.5 else 180, lerp(30, 90, f / 0.5) if f < 0.5 else lerp(90, 30, (f - 0.5) / 0.5))
         p, nrm = Ct + Rt @ p, Rt @ nrm
         s = sz * (0.7 + 0.3 * math.sin(math.pi * f))
@@ -1421,8 +1467,9 @@ def f_ridge(D, n=9, size=0.16, start=0.05, end=0.75, tail=4, mat='accent', round
                   rot=frame(UP, V((0, 1, 0))), seg=10, rings=7), ('near', ['root'] + D.tail, 4.0, 2))
 
 
-def f_plates(D, n=7, size=0.5, start=0.0, end=1.0, tail=3, mat='accent'):
-    """Stegosaur plates: rounded leaf slabs along the back, alternating."""
+def f_plates(D, n=7, size=0.5, start=0.0, end=1.0, mat='accent'):
+    """Stegosaur plates: rounded leaf slabs standing along the back,
+    alternating a little left/right (size = fraction of the torso height)."""
     L = D.L
     Ct, tr = L['torso_c'], L['torso_r']
     Rt = _rotm(L['torso_rot_deg'])
@@ -1433,15 +1480,16 @@ def f_plates(D, n=7, size=0.5, start=0.0, end=1.0, tail=3, mat='accent'):
         p, nrm = on_ell(V((0, 0, 0)), tr, 0 if f < 0.5 else 180, el)
         p, nrm = Ct + Rt @ p, Rt @ nrm
         s = sz * (0.55 + 0.45 * math.sin(math.pi * f))
-        xo = (0.08 if i % 2 else -0.08) * tr[0]
+        xo = (0.06 if i % 2 else -0.06) * tr[0]
+        along = V((0, 1, 0)) - nrm * nrm.dot(V((0, 1, 0)))
+        along.normalize()
 
-        def fn(u, v, p=p, nrm=nrm, s=s, xo=xo):
-            w = s * 0.5 * math.sin(math.pi * v) * (1 - 0.3 * v)
-            h = s * u
-            return p - nrm * s * 0.15 + V((xo, (v - 0.5) * s * 0.9 * (1 - u * 0.5), 0)) + nrm * h * 1.0 + \
-                V((0, 0, 0)) * w
-        D.add(slab('plate', D.m(mat), lambda u, v, fn=fn: fn(u, v), 6, 8, s * 0.16, ref=V((1, 0, 0))),
-              _torso_skin(D))
+        def fn(u, v, p=p, nrm=nrm, s=s, xo=xo, along=along):
+            # u along the back, v up the plate; a rounded leaf outline
+            h = s * math.sin(math.pi * u) ** 0.7
+            return p - nrm * s * 0.2 + V((xo, 0, 0)) + along * (u - 0.5) * s * 0.9 * (1 - 0.35 * v) + \
+                nrm * (h * v + s * 0.2 * v)
+        D.add(slab('plate', D.m(mat), fn, 8, 6, s * 0.14, ref=V((1, 0, 0))), _torso_skin(D))
 
 
 def f_sail(D, height=0.9, start=0.1, end=0.85, mat='accent'):
@@ -1484,7 +1532,7 @@ def f_beak(D, mat='horn', size=1.0):
                [r, r * 0.7, r * 0.12], seg=D.lod(12, 8), flat=[0.85, 0.8, 0.7], nrm=V((1, 0, 0))),
           ('rigid', 'head'))
     jt = L['jaw_tip']
-    D.add(ell('lbeak', D.m(mat), jt + FWD * r * 0.2 + UP * r * 0.15, (r * 0.62, r * 0.7, r * 0.45),
+    D.add(ell('lbeak', D.m(mat), jt + UP * r * 0.25, (r * 0.5, r * 0.55, r * 0.36),
               seg=D.lod(10, 8), rings=6), ('rigid', 'jaw'))
 
 
@@ -1499,7 +1547,7 @@ FEATURES = {'horns': f_horns, 'frill': f_frill, 'spots': f_spots, 'stripes': f_s
 def lid_scale(c):
     """Eyelid bone scale for closedness c (0 open .. 1 closed)."""
     c = clamp(c, 0.0, 1.0)
-    return V((1.0, 0.04 + 0.96 * c, min(1.0, 0.15 + c * 3.0)))
+    return V((0.4 + 0.6 * min(1.0, c * 3.0), 0.03 + 0.97 * c, min(1.0, 0.06 + c * 3.0)))
 
 
 def _solve(D, P):
@@ -1573,6 +1621,8 @@ def _ccd(D, P, rot, tgt, chain):
 def key_action(D, name, frames, gen, fps=FPS):
     """Sample gen(t) -> Pose on every frame 0..frames and key every bone."""
     R, arm = D.R, D.arm
+    bpy.context.scene.render.fps = fps          # the exporter samples at the scene rate
+    bpy.context.scene.render.fps_base = 1.0
     names = R.names
     data = {n: ([], [], []) for n in names}
     prevq = {}
@@ -1743,7 +1793,8 @@ class Moves:
                 phases = {'L': 0.0, 'fR': 0.0, 'R': 0.5, 'fL': 0.5}
             else:
                 phases = {'L': 0.0, 'R': 0.12, 'fL': 0.5, 'fR': 0.62}
-        reach = mv.get(kind + '_reach', 0.40 if kind == 'walk' else 0.5)
+        reach = mv.get(kind + '_reach', (0.40 if kind == 'walk' else 0.5) if not self.biped else
+                       (0.52 if kind == 'walk' else 0.66))
         if self.baby:
             reach *= 1.15
         F, T = self._gait_frames(v, duty, reach)
@@ -1831,7 +1882,7 @@ class Moves:
             self.tail(P, t, 0.5, yaw=10 * w, lag=0.7)
             if self.biped:
                 self.arms(P, -25 * w, 0, 6 * w)
-            P.lid = 0.35 * ch
+            P.lid = env(t, 0.42, 0.5, 1.1, 1.2)
             return P
         return T, g
 
@@ -1846,7 +1897,7 @@ class Moves:
             lap = env(t, 0.42, 0.5, 1.05, 1.15) * (0.5 + 0.5 * math.sin(TAU * (t - 0.42) / 0.16))
             P.jaw = 12 * lap
             P.r('head', 4 * lap, 0, 0, post=True)
-            P.lid = 0.5 * env(t, 0.4, 0.5, 1.1, 1.2)
+            P.lid = env(t, 0.42, 0.5, 1.08, 1.18)
             self.tail(P, t, 0.75, yaw=6 * w, lag=0.7)
             if self.biped:
                 self.arms(P, -20 * w, 0, 6 * w)
@@ -1882,7 +1933,7 @@ class Moves:
     def sleep(self):
         T = 3.0
         D = self.D
-        tgt = V((0.0, self.front_y - self.H * 0.05, D.L['snout_r'][2] * 1.2))
+        tgt = V((0.0, self.front_y - self.H * self.mv.get('sleep_fwd', 0.16), D.L['snout_r'][2] * 1.1))
 
         def g(t):
             P = Pose()
@@ -1890,8 +1941,8 @@ class Moves:
             br = wave(t, T)
             P.sc('root', (1 + 0.02 * br, 1 + 0.01 * br, 1 - 0.012 * br))
             P.reach = (tgt, 1.0, self.reach_chain()[1:] if not self.biped else self.reach_chain()[1:])
-            P.r('head', 0, 12, 16, post=True)
-            self.spread(P, D.neck, 0, 14, post=True)
+            P.r('head', -self.mv.get('sleep_lift', 18), 10, 14, post=True)
+            self.spread(P, D.neck, 0, 12, post=True)
             for i, b in enumerate(D.tail):
                 P.r(b, 6 if i == 0 else 0, 14 + 4 * i, 0)
             self.tail(P, t, T, yaw=2, lag=0.5)
@@ -1998,7 +2049,7 @@ class Moves:
             self.tail(P, t, 1.0 / 3, yaw=22, pitch=6, lag=0.5)
             self.spread(P, D.tail, -8 * env(t, 0.05, 0.25, 0.75, 1.0))
             P.jaw = 16 * env(t, 0.1, 0.25, 0.75, 0.95)
-            P.lid = 0.55 * env(t, 0.15, 0.3, 0.75, 0.95)
+            P.lid = env(t, 0.3, 0.36, 0.5, 0.58)
             if self.biped:
                 if clap:
                     c = 0.5 + 0.5 * math.cos(TAU * t * 4)
@@ -2050,7 +2101,7 @@ class Moves:
             P.r('root', 4 * inh - 5 * roar, 0, 0)
             P.sc('root', (1 + 0.04 * roar, 1, 1 + 0.05 * roar - 0.04 * inh))
             P.jaw = 6 * inh + 34 * roar
-            P.lid = 0.6 * roar
+            P.lid = env(t, 0.3, 0.38, 0.7, 0.8)
             self.spread(P, D.tail, -10 * roar)
             self.tail(P, t, 0.25, yaw=6 * roar, lag=0.5)
             if self.biped:

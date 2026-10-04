@@ -7,6 +7,7 @@ extends CanvasLayer
 signal closed()
 
 var in_game := false
+var shop_open := false
 var _root: Control
 var _stack: Array[Control] = []
 
@@ -88,12 +89,14 @@ func back() -> void:
 	var top: Control = _stack.pop_back()
 	top.queue_free()
 	if _stack.is_empty():
+		shop_open = false
 		closed.emit()
 	else:
 		_stack[-1].visible = true
 		_focus_first(_stack[-1].find_children("*", "VBoxContainer", true, false)[0])
 
 func close_all() -> void:
+	shop_open = false
 	while not _stack.is_empty():
 		_stack.pop_back().queue_free()
 	closed.emit()
@@ -102,6 +105,12 @@ func close_all() -> void:
 
 func show_title() -> void:
 	var vb := _page("", false)
+	# title: the panel sits on the left so the farm shows on the right
+	var panel: Control = vb.get_parent()
+	panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER_LEFT)
+	panel.offset_left = 70
+	panel.grow_horizontal = Control.GROW_DIRECTION_END
+	vb.custom_minimum_size = Vector2(440, 0)
 	var logo := Label.new()
 	logo.text = "Tommy's\nDino Zoo"
 	logo.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -236,7 +245,7 @@ func show_missions(world: Node) -> void:
 			("+%d" % m.coins) if not m.claimed else "", func():
 				var got := Missions.claim(i)
 				if got > 0:
-					Sfx.play("coins")
+					Sfx.play("mission")
 					world.toast(tr("toast.mission_done") % got, "coin")
 					back()
 					show_missions(world))
@@ -303,6 +312,7 @@ func shop_catalog(tab: String, world: Node) -> Array:
 
 func show_shop(world: Node, player: Node, tab := 0) -> void:
 	get_tree().paused = true
+	shop_open = true
 	var vb := _page(tr("menu.shop"))
 	var tabs := HBoxContainer.new()
 	tabs.add_theme_constant_override("separation", 8)
@@ -355,3 +365,64 @@ func show_shop(world: Node, player: Node, tab := 0) -> void:
 	_button(vb, tr("menu.back"), back)
 	if first:
 		first.grab_focus.call_deferred()
+
+# ---------------------------------------------------------------- naming
+
+## Name a newborn: three suggestions as big buttons (for kids who don't
+## write yet) and a text box. Calls on_done(name).
+func show_naming(species: String, suggestions: Array, on_done: Callable) -> void:
+	get_tree().paused = true
+	var vb := _page(tr("name.title") % Content.dino_name(species))
+	var pic := TextureRect.new()
+	pic.texture = Icons.get_icon("egg")
+	pic.custom_minimum_size = Vector2(110, 110)
+	pic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	pic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	vb.add_child(pic)
+	var ask := Label.new()
+	ask.text = tr("name.ask")
+	ask.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vb.add_child(ask)
+	for n in suggestions:
+		var nm: String = n
+		_button(vb, nm, func():
+			close_all()
+			on_done.call(nm))
+	var hb := HBoxContainer.new()
+	hb.add_theme_constant_override("separation", 10)
+	var le := LineEdit.new()
+	le.placeholder_text = tr("name.write")
+	le.max_length = 14
+	le.custom_minimum_size = Vector2(380, 64)
+	le.add_theme_font_size_override("font_size", 28)
+	hb.add_child(le)
+	var ok := Button.new()
+	ok.text = tr("name.ok")
+	ok.custom_minimum_size = Vector2(160, 64)
+	var submit := func(_t := ""):
+		var t := le.text.strip_edges()
+		if t != "":
+			close_all()
+			on_done.call(t)
+	ok.pressed.connect(submit)
+	le.text_submitted.connect(submit)
+	hb.add_child(ok)
+	vb.add_child(hb)
+	_focus_first(vb)
+
+# ---------------------------------------------------------------- confirm
+
+func show_confirm(question: String, on_yes: Callable) -> void:
+	get_tree().paused = true
+	var vb := _page("")
+	var l := Label.new()
+	l.text = question
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	l.custom_minimum_size = Vector2(560, 0)
+	vb.add_child(l)
+	_button(vb, tr("menu.yes"), func():
+		close_all()
+		on_yes.call())
+	_button(vb, tr("menu.no"), back)
+	_focus_first(vb)

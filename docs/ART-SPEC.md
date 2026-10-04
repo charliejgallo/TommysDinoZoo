@@ -96,7 +96,8 @@ bone-local Euler degrees). The game needs these names:
 **Tommy** (`tommy.glb`): `root` (hips; moving it lifts the whole body),
 `spine`, `chest`, `neck`, `head`, `upper_arm.L/.R`, `forearm.L/.R`,
 `hand.L/.R`, `thigh.L/.R`, `shin.L/.R`, `foot.L/.R`, plus `eyelid.L/.R`
-(scale 0 → 1 closes the eye) if you do blinks with lids. **`hand.R`** is
+(scale 0 → 1 closes the eye) and `mouth_open` (head child; scale 0 hidden → 1 open
+mouth). NPCs share this skeleton. **`hand.R`** is
 where the carried small item attaches (the item's origin is its grip
 point); **both hands** hold big items (egg, box, pumpkin) in front of the
 chest — `carry_*` animations put the hands there. Caps, back items and
@@ -141,8 +142,8 @@ frames, bezier), `C.cycle(frames, [pose, pose, ...])` for seamless loops.
 ## 5. Budgets
 
 Tommy ≤ 8k triangles; adult dino ≤ 10k (brachio/rex ≤ 14k); baby ≤ 6k;
-prop ≤ 3k (house ≤ 8k, tree ≤ 4k); held item ≤ 800. Up to 10 materials
-per model. glb ≤ 1 MB each.
+prop ≤ 3k (house ≤ 8k, tree ≤ 4k); held item ≤ 800. Keep materials few
+(the role lists in section 3 are the ceiling; Tommy uses 12). glb ≤ 1 MB each.
 
 ## 6. Names
 
