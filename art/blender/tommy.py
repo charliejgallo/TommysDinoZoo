@@ -1814,6 +1814,7 @@ def build_tommy():
         if only and name not in only.split(','):
             continue
         bake(arm, name, frames, fn)
+    quaternion_actions(arm)   # keeps constant poses (sit, sleep, carry) in the glb
     export_small(os.path.join(OUT, 'tommy.glb'), [arm, body])
 
 

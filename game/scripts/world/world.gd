@@ -846,6 +846,11 @@ func spawn_npcs() -> void:
 	juampi.setup("juampi", "npc_juampi", board + Vector3(1.2, 0, 1.0), [board + Vector3(1.2, 0, 1.0), Vector3(-6, 0, 6.5), Vector3(-1.5, 0, -2.5)])
 	_npcs_root.add_child(juampi)
 	_kids_today = 0
+	for i in int(Dev.arg("kids", "0")):   # dev: visitors right away
+		var k := Npc.new()
+		k.setup("kid", KID_MODELS[i % KID_MODELS.size()], Vector3(-3.0 + i * 1.6, 0, 3.2 + (i % 2) * 0.8), [Vector3(0, 0, 3)])
+		k.want = KID_WANTS[i % KID_WANTS.size()]
+		_npcs_root.add_child(k)
 
 var _kids_today := 0
 var _kid_t := 30.0
