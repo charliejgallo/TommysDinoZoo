@@ -358,6 +358,27 @@ L_UP, L_FORE, L_HAND = 0.100, 0.092, 0.070
 HEAD_BONE = V(0, 0, 0.60)
 
 
+# --- hooks for npcs.py, which re-proportions this body and re-uses the whole
+# rig and every animation (all identity for Tommy, so tommy.glb is unchanged)
+RETARGET = None   # fn(V, low) -> V: a Tommy-space model point -> the NPC's body
+LEGK = 1.0        # scale for vertical crouch/jump depths
+POSTURE = {}      # trunk bone -> euler deg added to every pose (a stoop)
+GAITS = {         # Gait(period, speed, stance, lift, heel, toe) + gait_pose kw
+    'walk': ((0.5, 1.6, 0.36, 0.075, 16, 26), dict(bob=0.012, base=-0.036, lean=5)),
+    'run': ((0.4, 3.5, 0.20, 0.11, 6, 34), dict(bob=0.016, base=-0.040, lean=13, arm_amp=38, elbow=70)),
+    'carry_walk': ((0.5, 1.6, 0.36, 0.07, 14, 24), dict(bob=0.012, base=-0.036, lean=1)),
+}
+
+
+def RT(p, low=False):
+    """A model-space point written for Tommy's body, on this body."""
+    return p if RETARGET is None else RETARGET(p, low)
+
+
+def RS(x):
+    return x if LEGK == 1.0 else x * LEGK
+
+
 def arm_dir(out_deg, fwd_deg, s):
     o, f = math.radians(out_deg), math.radians(fwd_deg)
     return V(s * math.sin(o) * math.cos(f), -math.sin(f), -math.cos(o) * math.cos(f)).normalized()
@@ -806,11 +827,11 @@ def build_cap(mb):
 # ===========================================================================
 
 def bone_list():
-    B = [('root', ROOT_H, V(0, 0, 0.37), None),
-         ('spine', V(0, 0, 0.37), V(0, 0, 0.45), 'root'),
-         ('chest', V(0, 0, 0.45), V(0, 0, 0.555), 'spine'),
-         ('neck', V(0, 0, 0.555), HEAD_BONE, 'chest'),
-         ('head', HEAD_BONE, V(0, 0, 0.97), 'neck')]
+    B = [('root', ROOT_H, RT(V(0, 0, 0.37)), None),
+         ('spine', RT(V(0, 0, 0.37)), RT(V(0, 0, 0.45)), 'root'),
+         ('chest', RT(V(0, 0, 0.45)), RT(V(0, 0, 0.555)), 'spine'),
+         ('neck', RT(V(0, 0, 0.555)), HEAD_BONE, 'chest'),
+         ('head', HEAD_BONE, RT(V(0, 0, 0.97)), 'neck')]
     for s, sd in ((1, 'L'), (-1, 'R')):
         sh, el, wr, tip = arm_rest(s)
         B += [('upper_arm.' + sd, sh, el, 'chest'),
@@ -1038,7 +1059,10 @@ def solve(p):
     order = ['root', 'spine', 'chest', 'neck', 'head', 'eyelid.L', 'eyelid.R', 'mouth_open']
     for b in order:
         h, M, _ = REST[b]
-        R = eul(p.r.get(b, (0, 0, 0)))
+        r = p.r.get(b, (0, 0, 0))
+        if b in POSTURE:
+            r = tuple(x + y for x, y in zip(r, POSTURE[b]))
+        R = eul(r)
         sc = p.s.get(b)
         if b == 'eyelid.L':
             v = max(0.01, p.lid[0])
@@ -1243,10 +1267,11 @@ def idle_upper(p, t, period=4.0, look=True):
 # ---------------------------------------------------------------- gaits
 
 class Gait:
-    def __init__(self, period, speed, stance, lift, heel, toe, width=HIP_X):
+    def __init__(self, period, speed, stance, lift, heel, toe, width=None):
         self.T, self.v, self.S = period, speed, stance
         self.Y0 = speed * stance * period / 2      # footprint +- from the hip
-        self.lift, self.heel, self.toe, self.width = lift, heel, toe, width
+        self.lift, self.heel, self.toe = lift, heel, toe
+        self.width = HIP_X if width is None else width
 
     def foot(self, t, s, phase0):
         q = (t / self.T + phase0) % 1.0
@@ -1310,15 +1335,15 @@ def a_idle(t):
 
 def a_walk(t):
     p = Pose()
-    g = Gait(0.5, 1.6, 0.36, 0.075, 16, 26)
-    gait_pose(p, t, g, bob=0.012, base=-0.036, lean=5)
+    g, kw = GAITS['walk']
+    gait_pose(p, t, Gait(*g), **kw)
     return p
 
 
 def a_run(t):
     p = Pose()
-    g = Gait(0.4, 3.5, 0.20, 0.11, 6, 34)
-    q = gait_pose(p, t, g, bob=0.016, base=-0.040, lean=13, arm_amp=38, elbow=70)
+    g, kw = GAITS['run']
+    q = gait_pose(p, t, Gait(*g), **kw)
     p.add('neck', (-3, 0, 0))
     for sd, s in (('L', 1), ('R', -1)):
         p.add('upper_arm.' + sd, (0, -s * 6, 0))
@@ -1363,22 +1388,23 @@ def a_carry_idle(t):
 
 def a_carry_walk(t):
     p = Pose()
-    g = Gait(0.5, 1.6, 0.36, 0.07, 14, 24)
-    gait_pose(p, t, g, bob=0.012, base=-0.036, lean=1, carry=True)
+    g, kw = GAITS['carry_walk']
+    gait_pose(p, t, Gait(*g), carry=True, **kw)
     return p
 
 
 def carry_walk_bob(t):
-    q = (t / 0.5) % 1.0
-    return -0.006 * math.cos(TAU * (2 * q - 0.36 - 0.12))
+    g = GAITS['carry_walk'][0]
+    q = (t / g[0]) % 1.0
+    return -0.006 * math.cos(TAU * (2 * q - g[2] - 0.12))
 
 
 def a_pickup(t):
     """0.7 s: dip, both hands to the ground in front, grab, stand into the
     carry pose."""
     p = Pose()
-    crouch = trk(t, [(0, 0), (0.06, -0.004), (0.24, -0.135), (0.34, -0.14), (0.52, -0.012), (0.60, 0.0),
-                     (0.7, 0.0)])
+    crouch = RS(trk(t, [(0, 0), (0.06, -0.004), (0.24, -0.135), (0.34, -0.14), (0.52, -0.012), (0.60, 0.0),
+                        (0.7, 0.0)]))
     lean = trk(t, [(0, 0), (0.06, -2), (0.24, 22), (0.34, 24), (0.54, 0), (0.62, -4), (0.7, -3)])
     p.root += V(0, 0.015 * lean / 28, crouch)
     p.add('root', (lean * 0.55, 0, 0))
@@ -1391,7 +1417,7 @@ def a_pickup(t):
 
 
 def pickup_targets(t, Dc, sd, s):
-    ground = V(s * trk(t, [(0, 0.15), (0.22, 0.13), (0.30, 0.118)]), -0.235, 0.10)
+    ground = RT(V(s * trk(t, [(0, 0.15), (0.22, 0.13), (0.30, 0.118)]), -0.235, 0.10))
     carry = Dc @ CARRY[sd]
     k = smoothstep(0.32, 0.56, t)
     reach = smoothstep(0.02, 0.24, t)
@@ -1427,7 +1453,7 @@ def a_pet(t):
     stroke = trk(t, [(0, 0), (0.2, 0), (0.35, 1), (0.5, 0), (0.65, 1), (0.8, 0), (1.0, 0)])
     reach = trk(t, [(0, 0), (0.18, 1), (0.82, 1), (1.0, 0)])
     rest = Dc @ (arm_rest(-1)[2] + V(0, -0.03, 0))
-    pet = V(-0.10, -0.215 - 0.05 * stroke, 0.45 - 0.015 * stroke)
+    pet = RT(V(-0.10, -0.215 - 0.05 * stroke, 0.45 - 0.015 * stroke))
     p.hand['R'] = (rest.lerp(pet, reach), (Dc.to_3x3() @ V(-0.9, 0.3, -0.5)).normalized())
     p.r['hand.R'] = (lerp(0, 35 - 15 * stroke, reach), 0, lerp(0, 50, reach))
     p.add('upper_arm.L', (trk(t, [(0, 0), (0.2, 10), (0.8, 10), (1, 0)]), 0, 0))
@@ -1448,7 +1474,7 @@ def a_give(t):
     out, J = solve(p)
     Dc = J['D']['chest']
     rest = Dc @ (arm_rest(-1)[2] + V(0, -0.03, 0))
-    give = V(-0.07, -0.225, 0.45)
+    give = RT(V(-0.07, -0.225, 0.45))
     p.hand['R'] = (rest.lerp(give, min(reach, 1.0)), (Dc.to_3x3() @ V(-0.9, 0.4, -0.6)).normalized())
     p.r['hand.R'] = (lerp(0, -30, min(reach, 1)), lerp(0, 70, min(reach, 1)), lerp(0, -20, min(reach, 1)))
     p.hold['R'] = ((-8, 0, 0), 0.6 + 0.4 * min(reach, 1.0))
@@ -1459,11 +1485,11 @@ def a_give(t):
 def a_happy(t):
     """0.8 s: anticipation, jump with both arms up, squash on landing."""
     p = Pose()
-    z = trk(t, [(0, 0), (0.12, -0.075), (0.20, 0.01), (0.25, 0.085), (0.36, 0.145), (0.47, 0.085),
-                (0.52, 0.0), (0.58, -0.07), (0.68, 0.012), (0.8, 0.0)])
+    z = RS(trk(t, [(0, 0), (0.12, -0.075), (0.20, 0.01), (0.25, 0.085), (0.36, 0.145), (0.47, 0.085),
+                   (0.52, 0.0), (0.58, -0.07), (0.68, 0.012), (0.8, 0.0)]))
     air = z > 0.0 and 0.18 < t < 0.53
     p.root += V(0, 0, z)
-    tuck = trk(t, [(0, 0), (0.2, 0), (0.30, 0.05), (0.42, 0.05), (0.52, 0.0)])
+    tuck = RS(trk(t, [(0, 0), (0.2, 0), (0.30, 0.05), (0.42, 0.05), (0.52, 0.0)]))
     for sd, s in (('L', 1), ('R', -1)):
         fz = max(0.0, z - tuck) if air else 0.0
         toe = trk(t, [(0, 0), (0.18, 0), (0.24, -30), (0.36, -15), (0.5, 5), (0.54, 0)])
@@ -1518,7 +1544,7 @@ def a_pet_low(t):
     """1.0 s: crouch and stroke a baby dino low in front (~0.3 m up)."""
     p = Pose()
     k = trk(t, [(0, 0), (0.22, 1.0), (0.8, 1.0), (1.0, 0)])
-    p.root += V(0, 0.02 * k, -0.125 * k)
+    p.root += V(0, RS(0.02 * k), RS(-0.125 * k))
     p.add('root', (16 * k, 0, 0))
     p.add('spine', (6 * k, 0, 3 * k))
     p.add('chest', (2 * k, 0, 5 * k))
@@ -1532,7 +1558,7 @@ def a_pet_low(t):
     Dc = J['D']['chest']
     stroke = trk(t, [(0, 0), (0.22, 0), (0.37, 1), (0.52, 0), (0.67, 1), (0.82, 0), (1.0, 0)])
     rest = Dc @ (arm_rest(-1)[2] + V(0, -0.03, 0))
-    pet = V(-0.09, -0.25 - 0.045 * stroke, 0.30 - 0.012 * stroke)
+    pet = RT(V(-0.09, -0.25 - 0.045 * stroke, 0.30 - 0.012 * stroke), low=True)
     p.hand['R'] = (rest.lerp(pet, k), (Dc.to_3x3() @ V(-0.9, 0.3, -0.5)).normalized())
     p.r['hand.R'] = (lerp(0, 30 - 15 * stroke, k), 0, lerp(0, 45, k))
     p.add('upper_arm.L', (-25 * k, -12 * k, 0))
@@ -1555,7 +1581,7 @@ def a_use(t):
     out, J = solve(p)
     Dc = J['D']['chest']
     rest = Dc @ (arm_rest(-1)[2] + V(0, -0.03, 0))
-    hold = Dc @ V(-0.12, -0.165, 0.40 - 0.02 * tip)
+    hold = Dc @ RT(V(-0.12, -0.165, 0.40 - 0.02 * tip))
     p.hand['R'] = (rest.lerp(hold, k), (Dc.to_3x3() @ V(-0.9, 0.5, -0.4)).normalized())
     p.r['hand.R'] = (lerp(0, -25, k) + 45 * tip, 0, 0)
     p.hold['R'] = ((60 * tip, 0, -10 * k), 0.6 + 0.4 * k)
@@ -1580,7 +1606,7 @@ def a_dig(t):
     toss to his right, back to ready (loops cleanly if repeated)."""
     p = Pose()
     col = lambda i: [(r[0], r[i]) for r in DIG_KEYS]  # noqa: E731
-    dz, lean, tw = trk(t, col(1)), trk(t, col(2)), trk(t, col(3))
+    dz, lean, tw = RS(trk(t, col(1))), trk(t, col(2)), trk(t, col(3))
     p.root += V(0, 0.01 * lean / 22, dz)
     p.add('root', (lean * 0.55, 0, tw * 0.3))
     p.add('spine', (lean * 0.3, 0, tw * 0.3))
@@ -1590,8 +1616,8 @@ def a_dig(t):
         p.foot[sd] = (side_pt(ANKLE, s) + V(0, -s * 0.03, 0), 0.0, 0.0, V(0, 0, 0))
     out, J = solve(p)
     Dc = J['D']['chest']
-    R = V(*trk(t, [(r[0], tuple(r[4])) for r in DIG_KEYS]))
-    L = V(*trk(t, [(r[0], tuple(r[5])) for r in DIG_KEYS]))
+    R = RT(V(*trk(t, [(r[0], tuple(r[4])) for r in DIG_KEYS])))
+    L = RT(V(*trk(t, [(r[0], tuple(r[5])) for r in DIG_KEYS])))
     p.hand['R'] = (Dc @ R, (Dc.to_3x3() @ V(-0.9, 0.5, -0.5)).normalized())
     p.hand['L'] = (Dc @ L, (Dc.to_3x3() @ V(0.9, 0.4, -0.5)).normalized())
     p.r['hand.R'] = (-10, 0, 20)
@@ -1822,7 +1848,8 @@ def build_cap_model():
     C.export_glb(os.path.join(OUT, 'cap_basic.glb'), [ob])
 
 
-if 'tommy' in ONLY:
-    build_tommy()
-if 'cap' in ONLY:
-    build_cap_model()
+if __name__ == '__main__':      # npcs.py imports this module
+    if 'tommy' in ONLY:
+        build_tommy()
+    if 'cap' in ONLY:
+        build_cap_model()

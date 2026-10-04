@@ -55,6 +55,7 @@ func _ready() -> void:
 		zones[zid] = {"rect": Rect2(r[0], r[1], r[2] - r[0], r[3] - r[1]),
 			"gate": Vector2(z.gate[0], z.gate[1]), "open": z.get("open", false)}
 	var st := Stage.make_env(self)
+	_cam_attr = st.world_env.camera_attributes
 	env = st.env
 	sun = st.sun
 	sky_mat = env.sky.sky_material
@@ -85,6 +86,7 @@ func _ready() -> void:
 	hud.set_script(hud_scene)
 	add_child(hud)
 	hud.bind(p)
+	get_tree().process_frame.connect(_paused_frame)
 	Game.world_save = save_state
 	Game.world_load = load_state
 	Game.day_ended.connect(_on_day_ended)
@@ -531,6 +533,11 @@ func _update_music() -> void:
 		_music_mode = want
 		Music.play(want, 3.0)
 
+func _paused_frame() -> void:
+	# menus pause the world but the camera may still glide (wardrobe)
+	if get_tree().paused and is_inside_tree():
+		_update_camera(get_process_delta_time() if get_process_delta_time() > 0 else 1.0 / 60.0)
+
 func _process(dt: float) -> void:
 	_check_menu()
 	_update_music()
@@ -607,8 +614,12 @@ func _update_occluders(dt: float) -> void:
 		p.set_fade(move_toward(p.fade, 0.7 if behind else 0.0, dt * 3.0))
 
 var cam_zoom := 1.0
+var _cam_attr: CameraAttributesPractical
+var cam_override := 0.0   # > 0: menus bring the camera close (wardrobe)
 
 func _zoom_setting() -> float:
+	if cam_override > 0.0:
+		return cam_override
 	if Dev.arg("zoom") != "":
 		return float(Dev.arg("zoom"))
 	return Game.CAMERA_ZOOMS[clampi(int(Game.settings.camera), 0, Game.CAMERA_ZOOMS.size() - 1)]
@@ -631,6 +642,13 @@ func _cam_target() -> Vector3:
 func _update_camera(dt: float) -> void:
 	cam_zoom = move_toward(cam_zoom, _zoom_setting(), dt * 1.5)
 	var want := _cam_target() + Stage.cam_offset() * cam_zoom
+	if _cam_attr:
+		# keep the miniature blur around Tommy whatever the distance
+		var dist := Stage.CAM_DIST * cam_zoom
+		_cam_attr.dof_blur_near_distance = dist * 0.62
+		_cam_attr.dof_blur_near_transition = dist * 0.22
+		_cam_attr.dof_blur_far_distance = dist * 1.45
+		_cam_attr.dof_blur_far_transition = dist * 0.7
 	cam.global_position = cam.global_position.lerp(want, 1.0 - exp(-4.0 * dt))
 
 func _update_daylight() -> void:

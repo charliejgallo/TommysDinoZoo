@@ -715,3 +715,108 @@ msgstr "Vive en: %s"
 msgid "album.hearts"
 msgstr "Amistad:"
 
+msgid "npc.home"
+msgstr "Casa"
+
+msgid "home.hello"
+msgstr "La casita de Tommy. ¿Qué hacemos?"
+
+msgid "home.wardrobe"
+msgstr "Ropero"
+
+msgid "verb.home"
+msgstr "Entrar"
+
+msgid "wear.cap"
+msgstr "Gorra"
+
+msgid "wear.shirt"
+msgstr "Remera"
+
+msgid "wear.pants"
+msgstr "Pantalón"
+
+msgid "wear.shoes"
+msgstr "Zapatillas"
+
+msgid "wear.skin"
+msgstr "Piel"
+
+msgid "wear.hair"
+msgstr "Pelo"
+
+msgid "color.red"
+msgstr "Roja"
+
+msgid "color.blue"
+msgstr "Azul"
+
+msgid "color.green"
+msgstr "Verde"
+
+msgid "color.yellow"
+msgstr "Amarilla"
+
+msgid "color.pink"
+msgstr "Rosa"
+
+msgid "color.purple"
+msgstr "Violeta"
+
+msgid "color.black"
+msgstr "Negra"
+
+msgid "color.rainbow"
+msgstr "Naranja"
+
+msgid "color.orange"
+msgstr "Naranja"
+
+msgid "color.teal"
+msgstr "Turquesa"
+
+msgid "color.navy"
+msgstr "Azul marino"
+
+msgid "color.denim"
+msgstr "Jean"
+
+msgid "color.khaki"
+msgstr "Caqui"
+
+msgid "color.white"
+msgstr "Blanca"
+
+msgid "color.brown"
+msgstr "Castaño"
+
+msgid "color.blond"
+msgstr "Rubio"
+
+msgid "color.light"
+msgstr "Claro"
+
+msgid "color.grey"
+msgstr "Canoso"
+
+msgid "color.s1"
+msgstr "1"
+
+msgid "color.s2"
+msgstr "2"
+
+msgid "color.s3"
+msgstr "3"
+
+msgid "color.s4"
+msgstr "4"
+
+msgid "color.s5"
+msgstr "5"
+
+msgid "color.s6"
+msgstr "6"
+
+msgid "wear.hint"
+msgstr "◀ ▶ probar  ·  A comprar"
+

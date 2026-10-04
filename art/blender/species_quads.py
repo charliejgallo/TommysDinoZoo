@@ -103,6 +103,53 @@ def f_tailspikes(D, pairs=2, at=0.72, gap=0.13, length=2.6, r=0.55, mat='accent'
             D.add(DL_t, ('rigid', bone))
 
 
+def f_roundplates(D, n=9, size=0.62, start=0.02, end=0.96, peak=0.55, width=0.95, thick=0.30,
+                  tail=2, neck=1, lean=10, mat='accent'):
+    """Kid-safe stegosaur plates: thick rounded leaves (a round top, a little
+    bulge) standing along the back in two alternating rows, biggest over the
+    hips, plus small ones down the tail and on the neck. size = height as a
+    fraction of the torso height radius; width = base width / height."""
+    L = D.L
+    tr = L['torso_r']
+    sz = size * tr[2] * D.A['plate']
+
+    def plate(base, nrm, along, s, xo, bone_how, lean_deg):
+        side = along.cross(nrm).normalized()
+        up = (nrm + side * math.tan(math.radians(lean_deg))).normalized()
+        b = base + side * xo - nrm * s * 0.22
+
+        def fn(u, v):
+            prof = math.sqrt(max(0.0, 1 - v ** 2.2)) * (1 + 0.32 * math.sin(math.pi * v))
+            return b + along * (u - 0.5) * s * width * prof + up * s * v * 1.05
+        D.add(DL.slab('plate', D.m(mat), fn, D.lod(8, 6), D.lod(8, 6), s * thick, ref=side),
+              bone_how)
+
+    for i in range(n):
+        f = DL.lerp(start, end, i / max(n - 1, 1))
+        el = DL.lerp(30, 90, f / 0.5) if f < 0.5 else DL.lerp(90, 30, (f - 0.5) / 0.5)
+        p, nrm = _torso_pt(D, 0 if f < 0.5 else 180, el)
+        along = (V((0, 1, 0)) - nrm * nrm.dot(V((0, 1, 0)))).normalized()
+        k = math.exp(-((f - peak) / 0.42) ** 2)
+        s = sz * (0.45 + 0.55 * k)
+        sd = 1 if i % 2 else -1
+        plate(p, nrm, along, s, sd * 0.07 * tr[0], DL._torso_skin(D), sd * lean)
+    pts = L['tail_pts']
+    for i in range(tail):
+        f = 0.12 + 0.2 * i
+        p, d, j = _along(pts, f)
+        rt = _tail_r(D, f) * D.spec['tail'].get('flat', 0.85)
+        s = sz * (0.42 - 0.1 * i)
+        sd = 1 if (n + i) % 2 else -1
+        plate(p + UP * rt * 0.8, UP, d, s, sd * rt * 0.15, ('rigid', D.tail[min(j, len(D.tail) - 1)]),
+              sd * lean)
+    npts = L['neck_pts']
+    for i in range(neck):
+        p = npts[0].lerp(npts[-1], 0.5)
+        nr = L['neck_r']
+        d = (npts[0] - npts[-1]).normalized()
+        plate(p + UP * nr * 0.75, UP, d, sz * 0.36, 0.0, ('near', ['spine'] + D.neck, 4.0, 2), 0)
+
+
 def f_scutes(D, rows=((30, 7, 0.20), (52, 6, 0.21), (74, 4, 0.20)), span_lo=15, span_hi=165,
              mat='accent', height=0.55, top=4):
     """Soft round knobs over the dome of the back: rows of (elevation deg,
@@ -119,7 +166,7 @@ def f_scutes(D, rows=((30, 7, 0.20), (52, 6, 0.21), (74, 4, 0.20)), span_lo=15, 
                 p, nrm = _torso_pt(D, az, el)
                 s = sz * tr[2] * k * (0.8 + 0.2 * math.sin(math.pi * u))
                 D.add(DL.ell('scute', D.m(mat), p + nrm * s * 0.12, (s, s, s * height),
-                             rot=DL.frame(nrm, UP), seg=D.lod(10, 8), rings=D.lod(6, 5)),
+                             rot=DL.frame(nrm, UP), seg=D.lod(12, 10), rings=D.lod(8, 6)),
                       DL._torso_skin(D))
     if top:                         # a row along the spine
         sz = rows[-1][2] * 1.05
@@ -129,7 +176,7 @@ def f_scutes(D, rows=((30, 7, 0.20), (52, 6, 0.21), (74, 4, 0.20)), span_lo=15, 
             p, nrm = _torso_pt(D, 0 if u < 0.5 else 180, el)
             s = sz * tr[2] * k
             D.add(DL.ell('scute', D.m(mat), p + nrm * s * 0.12, (s, s, s * height),
-                         rot=DL.frame(nrm, UP), seg=D.lod(10, 8), rings=D.lod(6, 5)), DL._torso_skin(D))
+                         rot=DL.frame(nrm, UP), seg=D.lod(12, 10), rings=D.lod(8, 6)), DL._torso_skin(D))
 
 
 def f_sidebumps(D, n=4, el=8, size=0.20, mat='horn'):
@@ -144,8 +191,8 @@ def f_sidebumps(D, n=4, el=8, size=0.20, mat='horn'):
             p, nrm = _torso_pt(D, sd * DL.lerp(40, 150, u), el)
             s = size * tr[2] * k
             d = (nrm + V((0, 0.35, 0.15))).normalized()
-            D.add(DL.tube('sbump', D.m(mat), [p - nrm * s * 0.3, p + d * s * 1.1],
-                          [s * 0.75, s * 0.42], seg=D.lod(10, 8), cap='end', sub=2),
+            D.add(DL.tube('sbump', D.m(mat), [p - nrm * s * 0.3, p + d * s * 0.8],
+                          [s * 0.75, s * 0.55], seg=D.lod(10, 8), cap='end', sub=2),
                   DL._torso_skin(D))
 
 
@@ -167,7 +214,7 @@ def f_club(D, size=2.3, mat='accent', knobs=True):
                          rings=D.lod(8, 6)), ('rigid', bone))
 
 
-def f_dome(D, r=(0.98, 1.0, 0.78), el=54, mat='accent', knobs=11, knob_mat='horn',
+def f_dome(D, r=(0.9, 0.95, 0.64), el=60, mat='accent', knobs=11, knob_mat='horn',
            snout_knobs=3, knob=0.13):
     """Pachy's dome: a big round cap on the head, ringed by soft knobs at the
     back and sides, a few small ones on the snout (r: head-radius fractions)."""
@@ -177,7 +224,7 @@ def f_dome(D, r=(0.98, 1.0, 0.78), el=54, mat='accent', knobs=11, knob_mat='horn
     p, n = DL.on_ell(hc, hr, 0, el)
     m = sum(hr) / 3
     rr = (m * r[0] * k, m * r[1] * k, m * r[2] * k)
-    c = p - n * rr[2] * 0.42
+    c = p - n * rr[2] * 0.5
     D.add(DL.ell('dome', D.m(mat), c, rr, rot=DL.frame(n, FWD), seg=D.lod(24), rings=D.lod(14)),
           ('rigid', 'head'))
     D.ref['dome'] = (c, rr, n)
@@ -202,7 +249,7 @@ def f_dome(D, r=(0.98, 1.0, 0.78), el=54, mat='accent', knobs=11, knob_mat='horn
                      rot=DL.frame(qn, UP), seg=8, rings=5), ('rigid', 'head'))
 
 
-for _k, _f in (('q_tailspikes', f_tailspikes), ('q_scutes', f_scutes), ('q_sidebumps', f_sidebumps),
+for _k, _f in (('q_tailspikes', f_tailspikes), ('q_roundplates', f_roundplates), ('q_scutes', f_scutes), ('q_sidebumps', f_sidebumps),
                ('q_club', f_club), ('q_dome', f_dome)):
     DL.FEATURES.setdefault(_k, _f)
 
@@ -323,13 +370,13 @@ STEGO = dict(
              horn='#fdf1d8', blush='#ff8fa6', **_EYES),
     torso=(0.33, 0.52, 0.36), leg=0.25, fleg=0.17, leg_r=0.10, fleg_r=0.85, knee=0.05,
     hip_y=0.48, sh_y=0.55, neck_z=0.05,
-    neck_len=0.12, neck_deg=-2, neck_deg2=8, neck_n=1, neck_r=0.50,
+    neck_len=0.12, neck_deg=-12, neck_deg2=4, neck_n=1, neck_r=0.50,
     head=dict(r=(0.23, 0.25, 0.22), off=(0.40, 0.25), snout=(0.66, 0.62, 0.58),
               snout_fwd=0.58, snout_drop=0.28, smile=dict(width=62, z=-0.30, curl=0.24)),
     eye=dict(r=0.30, az=42, el=16, flat=0.5, gaze=0.18),
     tail=dict(len=0.72, r=0.50, n=4, droop_deg=14, droop2_deg=-14, tip=0.30),
     parts=[
-        ('plates', dict(n=9, size=0.78, start=0.04, end=0.98)),
+        ('q_roundplates', dict()),
         ('q_tailspikes', dict(pairs=2, at=0.74, gap=0.15)),
         ('spots', dict(spots=[(80, 35, 0.16), (280, 35, 0.16), (120, 20, 0.13), (240, 20, 0.13),
                               (55, 25, 0.12), (305, 25, 0.12), (150, 40, 0.13), (210, 40, 0.13)])),
@@ -352,7 +399,7 @@ ANKYLO = dict(
     eye=dict(r=0.28, az=42, el=18, flat=0.5, gaze=0.18),
     tail=dict(len=0.62, r=0.38, n=3, droop_deg=14, droop2_deg=-4, tip=0.42),
     parts=[
-        ('q_scutes', dict()),
+        ('q_scutes', dict(rows=((26, 5, 0.25), (54, 4, 0.27)), top=3, height=0.5)),
         ('q_sidebumps', dict(n=4)),
         ('q_club', dict(size=2.2)),
         ('horns', dict(horns=[dict(az=62, el=30, len=0.5, r=0.17, dir=(0.75, 0.35, 0.45),
@@ -376,8 +423,8 @@ PROTO = dict(
     eye=dict(r=0.28, az=40, el=16, flat=0.5, gaze=0.18),
     tail=dict(len=0.40, r=0.50, n=3, droop_deg=24, droop2_deg=0, tip=0.20),
     parts=[
-        ('frill', dict(r=1.05, tilt_deg=52, span_deg=200, scallops=5, scallop=0.08, up=0.42,
-                       back=0.40, cup=0.12, wrap=0.30, thick=0.2, spots=5)),
+        ('frill', dict(r=1.28, tilt_deg=44, span_deg=200, scallops=5, scallop=0.08, up=0.45,
+                       back=0.38, cup=0.12, wrap=0.30, thick=0.2, spots=5)),
         ('beak', dict(size=0.85)),
         ('bump', dict(on='snout', az=0, el=62, r=(0.24, 0.32, 0.20), mat='body')),
         ('spots', dict(spots=[(180, 62, 0.24), (150, 42, 0.18), (210, 42, 0.18),

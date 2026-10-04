@@ -192,7 +192,7 @@ func interact_info(p: Player) -> Dictionary:
 	if def.has("missions"):
 		return {"verb": "missions", "icon": "missions", "priority": 2}
 	if def.has("home"):
-		return {"verb": "sleep", "icon": "sleep", "priority": 1}
+		return {"verb": "home", "icon": "sleep", "priority": 1}
 	if def.has("shop"):
 		return {"verb": "shop", "icon": "shop", "priority": 2}
 	return _pack_info(p)
@@ -247,8 +247,11 @@ func interact(p: Player, info: Dictionary) -> void:
 				world().spawn_item(def.shake, global_position + off)
 		"missions":
 			world().open_missions(p)
-		"sleep":
-			world().ask_sleep(p)
+		"home":
+			world().menus.show_dialog(tr("npc.home"), [tr("home.hello")], [
+				[tr("home.wardrobe"), func(): world().menus.show_wardrobe(p)],
+				[tr("verb.sleep"), func(): world().ask_sleep(p)],
+			], func(): pass)
 		"shop":
 			world().open_shop(p)
 		"pack":

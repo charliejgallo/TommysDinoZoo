@@ -11,6 +11,7 @@ var items := {}
 var plants := {}
 var props := {}
 var habitats := {}
+var wardrobe := {}   # role -> [[name, colour, price], ...]; index 0 is the default
 
 func _ready() -> void:
 	var dirs := []
@@ -45,6 +46,8 @@ func _ready() -> void:
 					dst[id].merge(entry, true)
 				else:
 					dst[id] = entry
+		for role in data.get("wardrobe", {}):
+			wardrobe[role] = wardrobe.get(role, []) + data.wardrobe[role]
 		lang_dirs.append(d.path_join("lang"))
 	lang_dirs.append("user://lang")
 	Lang.load_dirs(lang_dirs)

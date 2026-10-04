@@ -164,93 +164,112 @@ def f_bp_crest(D, length=1.7, r=0.22, el=58, rise=0.42, mat='accent', stripe='sp
     del cr
 
 
-def f_bp_fluff(D, ruff=11, back=7, arms=3, thighs=2, tail=6, crest=3, cheeks=True, mat='accent',
-               mat2='body'):
-    """Therizinosaur fluff: soft tufts in a ruff round the neck base, along
-    the back, fringes on the forearms, fluffy 'trousers' on the thighs, a
-    plume at the tail tip and a tuft on the head."""
+def _puff(D, mat, base, d, length, width, how, out=None, flat=0.7, sink=0.25):
+    """One soft fluff puff: a teardrop ellipsoid lying along `d` (tip end),
+    flattened along `out` (the surface normal), its root sunk into the body."""
+    y = V(d).normalized()
+    o = V(out) if out is not None else UP
+    z = o - y * o.dot(y)
+    if z.length < 1e-4:
+        z = V((1, 0, 0)) - y * y.x
+    z.normalize()
+    x = y.cross(z)
+    from mathutils import Matrix
+    Rm = Matrix((x, y, z)).transposed()
+
+    def tear(u):
+        k = 1.0 - 0.5 * max(u.y, 0.0) ** 1.5
+        u.x *= k
+        u.z *= k
+        return u
+    c = base + y * length * (0.5 - sink * 0.5)
+    D.add(DL.ell('puff', D.m(mat), c, (width, length * 0.5, width * flat), rot=Rm,
+                 seg=8, rings=6, deform=tear), how)
+
+
+def f_bp_fluff(D, ruff=10, back=6, arms=2, thighs=2, tail=5, crest=3, mat='accent', mat2='body'):
+    """Therizinosaur fluff: soft puffs in a mane round the neck base, down
+    the back, fringes on the arms, fluffy 'trousers' on the thighs, a plume
+    at the tail tip and a tuft on the head."""
     L = D.L
-    k = D.A['crest'] * (1.15 if D.age == 'baby' else 1.0)
-    few = D.age == 'baby'
-    if few:
-        ruff, back, tail, thighs = max(ruff - 4, 5), max(back - 3, 3), max(tail - 2, 3), 1
-    # ruff round the neck base (skip the throat)
+    k = 1.0 if D.age != 'baby' else 1.12
+    if D.age == 'baby':
+        ruff, back, tail, thighs = 7, 3, 4, 1
+    # mane round the neck base (skip the throat)
     pts = L['neck_pts']
     nr = L['neck_r']
-    c0 = pts[0].lerp(pts[1], 0.55)
     d = (pts[1] - pts[0]).normalized()
     ax = V((1, 0, 0))
-    bk = d.cross(ax).normalized()           # points to the back side of the neck
+    bk = d.cross(ax).normalized()           # the back side of the neck
     if bk.dot(V((0, 1, 0))) < 0:
         bk = -bk
-    for j in range(ruff):
-        a = math.radians(-125 + 250 * j / max(ruff - 1, 1))
-        o = (bk * math.cos(a) + ax * math.sin(a)).normalized()
-        b = c0 + o * nr * 0.75
-        dd = (o * 0.85 - d * 0.35 + V((0, 0.15, 0))).normalized()
-        ln = nr * (1.05 + 0.25 * math.cos(a)) * k
-        _tuft(D, mat, b, dd, ln, nr * 0.42, ('near', ['spine'] + D.neck, 4.0, 2), droop=0.25)
+    for ring, (f, n_, sz) in enumerate(((0.15, ruff, 1.0), (0.75, max(ruff - 3, 4), 0.75))):
+        c0 = pts[0].lerp(pts[1], f)
+        for j in range(n_):
+            a = math.radians(-120 + 240 * (j + 0.5 * ring) / max(n_ - 1 + ring * 0.5, 1))
+            o = (bk * math.cos(a) + ax * math.sin(a)).normalized()
+            b = c0 + o * nr * 0.92
+            dd = (o * 0.45 - d * 0.8).normalized()
+            ln = nr * 1.05 * sz * k
+            _puff(D, mat, b, dd, ln, ln * 0.42, ('near', ['spine'] + D.neck, 4.0, 2), out=o)
     # down the back
     Ct, tr = L['torso_c'], L['torso_r']
     Rt = DL._rotm(L['torso_rot_deg'])
     for i in range(back):
         f = i / max(back - 1, 1)
-        az = 180 + (14 if i % 2 else -14) * (1 if i % 4 < 2 else -1)
-        el = DL.lerp(70, 18, f)
+        az = 180 + (22 if i % 2 else -22)
+        el = DL.lerp(62, 22, f)
         p, n = DL.on_ell(V((0, 0, 0)), tr, az, el)
         p, n = Ct + Rt @ p, Rt @ n
-        dd = (n * 0.7 + V((0, 0.55, -0.3))).normalized()
-        ln = min(tr) * 0.42 * k
-        _tuft(D, mat2 if i % 3 == 1 else mat, p - n * ln * 0.12, dd, ln, ln * 0.4, DL._torso_skin(D),
-              droop=0.2)
-    # forearm fringes
+        dd = (V((0, 0.35, -1.0)) - n * n.dot(V((0, 0.35, -1.0)))).normalized()
+        ln = min(tr) * 0.55 * k
+        _puff(D, mat2 if i % 2 else mat, p, dd, ln, ln * 0.45, DL._torso_skin(D), out=n)
+    # arm fringes
     ar = L['arm_r']
     for a in D.arms:
-        el_, hd = a['el'], a['hand']
         for j in range(arms):
-            f = 0.15 + 0.7 * j / max(arms - 1, 1)
-            b = a['sh'].lerp(el_, 0.6) if j == 0 else el_.lerp(hd, f)
-            dd = V((a['side'] * 0.45, 0.85, -0.35)).normalized()
-            ln = ar * (2.0 - 0.3 * j) * k
-            _tuft(D, mat, b, dd, ln, ar * 0.65, ('rigid', a['arm'] if j == 0 else a['forearm']), droop=0.25)
+            b = a['sh'].lerp(a['el'], 0.55) if j == 0 else a['el'].lerp(a['hand'], 0.45)
+            dd = V((a['side'] * 0.2, 0.6, -0.8)).normalized()
+            ln = ar * 2.4 * k
+            _puff(D, mat, b + V((a['side'] * ar * 0.4, ar * 0.5, 0)), dd, ln, ln * 0.42,
+                  ('rigid', a['arm'] if j == 0 else a['forearm']), out=V((a['side'], 0.6, 0)))
     # fluffy thighs
     for lg in D.legs:
         hip, knee = lg['hip'], lg['knee']
         for j in range(thighs):
-            f = 0.35 + 0.35 * j
-            b = hip.lerp(knee, f) + V((lg['side'] * L['leg_r'] * 1.2, L['leg_r'] * 1.3, 0))
-            dd = V((lg['side'] * 0.6, 0.6, -0.55)).normalized()
-            ln = L['leg_r'] * 1.9 * k
-            _tuft(D, mat, b, dd, ln, L['leg_r'] * 0.75, ('rigid', lg['thigh']), droop=0.2)
+            f = 0.3 + 0.4 * j
+            b = hip.lerp(knee, f) + V((lg['side'] * L['leg_r'] * 1.1, L['leg_r'] * 1.4, 0))
+            dd = V((lg['side'] * 0.25, 0.35, -1.0)).normalized()
+            ln = L['leg_r'] * 2.4 * k
+            _puff(D, mat, b, dd, ln, ln * 0.45, ('rigid', lg['thigh']), out=V((lg['side'], 0.7, 0)))
     # tail plume
     tp = L['tail_pts']
     trr = L['tail_r']
     tip = tp[-1]
     dt = (tp[-1] - tp[-2]).normalized()
     for j in range(tail):
-        a = TAU * j / tail
-        o = V((math.cos(a), 0, math.sin(a))) * 0.55
-        b = tip - dt * trr * 0.6 + o * trr * 0.25
-        dd = (dt + o).normalized()
-        _tuft(D, mat, b, dd, trr * 2.4 * k, trr * 0.55, ('rigid', D.tail[-1]), droop=0.1)
-    # tufts on top of the tail near its base
-    for j in range(2 if not few else 1):
-        f = 0.35 + 0.25 * j
+        a = TAU * j / tail + 0.4
+        o = V((math.cos(a), 0, math.sin(a)))
+        b = tip - dt * trr * 0.9 + o * trr * 0.3
+        dd = (dt + o * 0.55).normalized()
+        ln = trr * 2.6 * k
+        _puff(D, mat, b, dd, ln, ln * 0.4, ('rigid', D.tail[-1]), out=o)
+    for j in range(2 if D.age != 'baby' else 1):
+        f = 0.3 + 0.3 * j
         kk = f * (len(tp) - 1)
         i0 = min(int(kk), len(tp) - 2)
         p = tp[i0].lerp(tp[i0 + 1], kk - i0)
         r = trr * DL.lerp(1.0, 0.3, f) * D.spec['tail'].get('flat', 0.85)
-        _tuft(D, mat, p + UP * r * 0.7, V((0, 0.8, 0.6)), r * 1.5 * k, r * 0.5,
-              ('near', ['root'] + D.tail, 4.0, 2), droop=0.25)
+        _puff(D, mat, p + UP * r * 0.75, V((0, 1.0, 0.25)), r * 1.8 * k, r * 0.7,
+              ('near', ['root'] + D.tail, 4.0, 2), out=UP)
     # head tuft
     hc, hr = L['head_c'], L['head_r']
     for i in range(crest):
-        xo = (-1 + 2 * i / max(crest - 1, 1)) * 0.28 if crest > 1 else 0.0
-        p, n = DL.on_ell(hc, hr, xo * 60 + (180 if False else 0), 70 - abs(xo) * 20)
-        dd = V((xo * 0.8, 0.6, 1.0)).normalized()
-        ln = hr[2] * (0.75 - 0.2 * abs(xo) * 3) * D.A['crest']
-        _tuft(D, mat, p - n * hr[2] * 0.08, dd, ln, hr[2] * 0.2, ('rigid', 'head'), droop=0.15)
-    del cheeks
+        xo = (-1 + 2 * i / max(crest - 1, 1)) * 0.3 if crest > 1 else 0.0
+        p, n = DL.on_ell(hc, hr, xo * 70, 66 - abs(xo) * 15)
+        dd = (n * 0.8 + V((0, 0.6, 0))).normalized()
+        ln = hr[2] * (0.75 - abs(xo) * 0.6) * D.A['crest']
+        _puff(D, mat, p - n * hr[2] * 0.05, dd, ln, ln * 0.4, ('rigid', 'head'), out=V((xo, 0.3, 1)), sink=0.1)
 
 
 def f_bp_mittens(D, n=3, length=2.6, r=0.42):
