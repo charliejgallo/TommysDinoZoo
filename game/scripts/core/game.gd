@@ -24,6 +24,7 @@ var settings := {
 	"fullscreen": false,
 	"text_scale": 1.0,
 	"camera": 1,          # index into CAMERA_ZOOMS
+	"cheap": false,       # "everything costs a tenth": little kids get almost everything
 }
 
 ## Camera distance presets (Settings > Camera): very close .. far
@@ -81,6 +82,13 @@ func add_coins(n: int, why := "") -> void:
 	if n > 0:
 		count("coins_earned", n)
 	coins_changed.emit(coins)
+
+## What something listed at `base` coins costs now (Settings: cheap mode
+## divides every price by ten, never below one coin).
+func price(base: int) -> int:
+	if base <= 0:
+		return base
+	return maxi(1, int(ceil(base / 10.0))) if settings.get("cheap", false) else base
 
 func can_pay(n: int) -> bool:
 	return coins >= n

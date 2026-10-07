@@ -57,7 +57,8 @@ func interact_info(p: Player) -> Dictionary:
 			return {"verb": "scoop", "icon": "scoop", "priority": 2}
 		return {"verb": "need_" + def.needs_tool, "icon": "scoop", "priority": 0, "disabled": true}
 	if not p.has_free_slot():
-		return {"verb": "hands_full", "icon": "hands", "priority": 0, "disabled": true}
+		# pockets full: leave what's in the active pocket here, take this
+		return {"verb": "swap", "icon": "pickup", "priority": 1}
 	return {"verb": "pickup", "icon": "pickup", "priority": 1}
 
 func interact(p: Player, info: Dictionary) -> void:
@@ -67,6 +68,15 @@ func interact(p: Player, info: Dictionary) -> void:
 				p.anim_once("pickup")
 				Sfx.play("pickup")
 				queue_free()
+		"swap":
+			var old := p.take_held()
+			p.give_item(id)
+			p.anim_once("pickup")
+			Sfx.play("pickup")
+			var w := get_tree().get_first_node_in_group("world")
+			if old != "":
+				w.spawn_item(old, global_position)
+			queue_free()
 		"scoop":
 			p.anim_once("dig")
 			Sfx.play("scoop")

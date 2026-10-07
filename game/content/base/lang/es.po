@@ -835,3 +835,9 @@ msgstr "¡Pescaste un pescado!"
 msgid "toast.fish_wait"
 msgstr "Esperá a que pique..."
 
+msgid "verb.swap"
+msgstr "Cambiar"
+
+msgid "set.cheap"
+msgstr "Todo baratito"
+
