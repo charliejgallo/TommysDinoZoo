@@ -109,6 +109,17 @@ func give_item(id: String) -> bool:
 	slots_changed.emit()
 	return true
 
+## Give an item even with full pockets: what's in the active pocket is put
+## down at Tommy's feet to make room (never lost).
+func give_or_swap(id: String) -> void:
+	if give_item(id):
+		return
+	var old := take_held()
+	give_item(id)
+	var w := get_tree().get_first_node_in_group("world")
+	if w and old != "":
+		w.spawn_item(old, front_point(0.6))
+
 func take_held() -> String:
 	var id: String = slots[active]
 	slots[active] = ""
@@ -283,8 +294,7 @@ func _do_action() -> void:
 			await get_tree().create_timer(wait, false).timeout
 			Sfx.play("splash")
 			anim_once("happy")
-			if not give_item("fish"):
-				w.spawn_item("fish", front_point(0.6))
+			give_or_swap("fish")
 			w.toast(tr("toast.fish_got"), "harvest")
 			Game.count("fished")
 		"throw":

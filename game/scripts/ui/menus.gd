@@ -182,6 +182,7 @@ func show_settings() -> void:
 			Game.settings.sfx = vols[i]
 			Game.apply_settings())
 	var onoff := [tr("set.off"), tr("set.on")]
+	_stepper(vb, "set.cheap", onoff, 1 if Game.settings.get("cheap", false) else 0, func(i): Game.settings.cheap = i == 1)
 	_stepper(vb, "set.guide", onoff, 1 if Game.settings.guide_arrow else 0, func(i): Game.settings.guide_arrow = i == 1)
 	_stepper(vb, "set.fullscreen", onoff, 1 if Game.settings.fullscreen else 0,
 		func(i):
@@ -299,17 +300,17 @@ func shop_catalog(tab: String, world: Node) -> Array:
 			for id in Content.items:
 				var d: Dictionary = Content.items[id]
 				if d.get("kind", "") == kind and int(d.get("price", 0)) > 0:
-					out.append({"id": id, "price": int(d.price), "name": Content.item_name(id), "icon": "item:" + id})
+					out.append({"id": id, "price": Game.price(int(d.price)), "name": Content.item_name(id), "icon": "item:" + id})
 		"eggs":
 			for sp in Content.dinos:
 				var d: Dictionary = Content.dinos[sp]
 				if int(d.get("price", 0)) > 0 and world.is_zone_open(d.get("habitat", "")):
-					out.append({"id": "egg_" + sp, "price": int(d.price), "name": tr("shop.egg") % Content.dino_name(sp), "icon": "item:egg_" + sp})
+					out.append({"id": "egg_" + sp, "price": Game.price(int(d.price)), "name": tr("shop.egg") % Content.dino_name(sp), "icon": "item:egg_" + sp})
 		"furniture":
 			for id in Content.props:
 				var d: Dictionary = Content.props[id]
 				if int(d.get("price", 0)) > 0 and not d.get("fixed", false):
-					out.append({"id": "box_" + id, "price": int(d.price), "name": tr("prop." + id), "icon": "item:box_" + id})
+					out.append({"id": "box_" + id, "price": Game.price(int(d.price)), "name": tr("prop." + id), "icon": "item:box_" + id})
 	out.sort_custom(func(a, b): return a.price < b.price)
 	return out
 
@@ -669,7 +670,7 @@ func show_wardrobe(player: Node) -> void:
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vb.add_child(hint)
 	var owned := func(role: String, o: Array) -> bool:
-		return int(o[2]) == 0 or Game.flags.get("owned_%s_%s" % [role, o[0]], false)
+		return Game.price(int(o[2])) == 0 or Game.flags.get("owned_%s_%s" % [role, o[0]], false)
 	for role in WARDROBE_ROLES:
 		var opts: Array = Content.wardrobe.get(role, [])
 		if opts.is_empty():
@@ -688,7 +689,7 @@ func show_wardrobe(player: Node) -> void:
 		var refresh := func():
 			var o: Array = opts[st.i]
 			var mine: bool = owned.call(r, o)
-			b.text = "‹  %s%s  ›" % [tr("color." + o[0]), "" if mine else "  · %d" % int(o[2])]
+			b.text = "‹  %s%s  ›" % [tr("color." + o[0]), "" if mine else "  · %d" % Game.price(int(o[2]))]
 			var of: Dictionary = Game.flags.get("outfit", {})
 			of[r] = st.i
 			Game.flags["outfit"] = of
@@ -706,10 +707,10 @@ func show_wardrobe(player: Node) -> void:
 				saved[r] = st.i
 				Sfx.play("ui")
 				return
-			if not Game.can_pay(int(o[2])):
+			if not Game.can_pay(Game.price(int(o[2]))):
 				Sfx.play("nope")
 				return
-			Game.add_coins(-int(o[2]))
+			Game.add_coins(-Game.price(int(o[2])))
 			Game.flags["owned_%s_%s" % [r, o[0]]] = true
 			saved[r] = st.i
 			Sfx.play("buy")

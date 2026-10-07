@@ -295,13 +295,11 @@ func interact(p: Player, info: Dictionary) -> void:
 			world().toast(tr("toast.egg_wait"), "egg")
 		"harvest":
 			var item: String = def.harvest
-			if p.give_item(item):
-				state.day = Game.day
-				p.anim_once("pickup")
-				Sfx.play("pickup")
-				Game.count("harvested")
-			else:
-				world().toast(tr("toast.hands_full"), "hands")
+			p.give_or_swap(item)
+			state.day = Game.day
+			p.anim_once("pickup")
+			Sfx.play("pickup")
+			Game.count("harvested")
 		"shake":
 			state.day = Game.day
 			p.anim_once("use")
