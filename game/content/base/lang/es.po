@@ -841,3 +841,99 @@ msgstr "Cambiar"
 msgid "set.cheap"
 msgstr "Todo baratito"
 
+msgid "set.page_game"
+msgstr "Juego"
+
+msgid "set.page_access"
+msgstr "Accesibilidad"
+
+msgid "set.page_parents"
+msgstr "Para padres"
+
+msgid "set.text_size"
+msgstr "Tamaño del texto"
+
+msgid "set.size_0"
+msgstr "Normal"
+
+msgid "set.size_1"
+msgstr "Grande"
+
+msgid "set.size_2"
+msgstr "Muy grande"
+
+msgid "set.tts"
+msgstr "Leer en voz alta"
+
+msgid "set.tts_hello"
+msgstr "Voy a leer los carteles en voz alta"
+
+msgid "set.autorun"
+msgstr "Correr solo"
+
+msgid "set.blur"
+msgstr "Desenfoque de maqueta"
+
+msgid "set.flash"
+msgstr "Flash de la cámara"
+
+msgid "set.rumble"
+msgstr "Vibración del joystick"
+
+msgid "set.session_days"
+msgstr "Días por sesión"
+
+msgid "set.no_limit"
+msgstr "Sin límite"
+
+msgid "set.days"
+msgstr "%d"
+
+msgid "set.lock_all"
+msgstr "Proteger todos los ajustes"
+
+msgid "set.pin_set"
+msgstr "Poner un PIN"
+
+msgid "set.pin_change"
+msgstr "Cambiar el PIN"
+
+msgid "set.pin_remove"
+msgstr "Quitar el PIN"
+
+msgid "set.pin_new"
+msgstr "PIN nuevo (4 números)"
+
+msgid "set.stats"
+msgstr "Hoy: %d min · En total: %d h %d min · Día de la granja: %d"
+
+msgid "gate.pin"
+msgstr "PIN de padres"
+
+msgid "gate.forgot"
+msgstr "Me olvidé el PIN"
+
+msgid "gate.title"
+msgstr "Solo para grandes"
+
+msgid "gate.question"
+msgstr "¿Cuánto es %d × %d?"
+
+msgid "rest.title"
+msgstr "¡Hora de descansar!"
+
+msgid "rest.text"
+msgstr "Los dinos ya se fueron a dormir. Mañana te esperan para jugar de nuevo."
+
+msgid "rest.quit"
+msgstr "Salir"
+
+msgid "rest.parents"
+msgstr "Seguir (para grandes)"
+
+msgid "item.backpack"
+msgstr "Mochila (un bolsillo más)"
+
+msgid "toast.backpack"
+msgstr "¡Mochila nueva! Ahora tenés 4 bolsillos"
+

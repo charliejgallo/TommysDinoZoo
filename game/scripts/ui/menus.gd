@@ -159,10 +159,23 @@ func show_pause() -> void:
 # ---------------------------------------------------------------- settings
 
 func show_settings() -> void:
+	if Game.settings.get("lock_all", false):
+		parent_gate(_show_settings_page)
+	else:
+		_show_settings_page()
+
+func _show_settings_page() -> void:
 	var vb := _page(tr("menu.settings"))
-	_stepper(vb, "set.day_length", Game.DAY_CHOICES.map(func(m): return tr("set.minutes") % m),
-		Game.DAY_CHOICES.find(int(Game.settings.day_minutes)),
-		func(i): Game.settings.day_minutes = Game.DAY_CHOICES[i])
+	_button(vb, tr("set.page_game"), show_settings_game)
+	_button(vb, tr("set.page_access"), show_settings_access)
+	_button(vb, tr("set.page_parents"), func(): parent_gate(show_parents))
+	_button(vb, tr("menu.back"), func():
+		Game.save_settings()
+		back())
+	_focus_first(vb)
+
+func show_settings_game() -> void:
+	var vb := _page(tr("set.page_game"))
 	_stepper(vb, "set.camera", ["set.cam_0", "set.cam_1", "set.cam_2", "set.cam_3"].map(func(k): return tr(k)),
 		int(Game.settings.camera), func(i): Game.settings.camera = i)
 	var locs := Lang.languages.keys()
@@ -182,20 +195,223 @@ func show_settings() -> void:
 			Game.settings.sfx = vols[i]
 			Game.apply_settings())
 	var onoff := [tr("set.off"), tr("set.on")]
-	_stepper(vb, "set.cheap", onoff, 1 if Game.settings.get("cheap", false) else 0, func(i): Game.settings.cheap = i == 1)
 	_stepper(vb, "set.guide", onoff, 1 if Game.settings.guide_arrow else 0, func(i): Game.settings.guide_arrow = i == 1)
 	_stepper(vb, "set.fullscreen", onoff, 1 if Game.settings.fullscreen else 0,
 		func(i):
 			Game.settings.fullscreen = i == 1
 			Game.apply_settings())
-	var parents := Label.new()
-	parents.text = tr("set.parents") % int(Game.played_today_s / 60.0)
-	parents.add_theme_font_size_override("font_size", 24)
-	parents.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	vb.add_child(parents)
 	_button(vb, tr("menu.back"), func():
 		Game.save_settings()
 		back())
+	_focus_first(vb)
+
+func show_settings_access() -> void:
+	var vb := _page(tr("set.page_access"))
+	var onoff := [tr("set.off"), tr("set.on")]
+	_stepper(vb, "set.text_size", [tr("set.size_0"), tr("set.size_1"), tr("set.size_2")], int(Game.settings.get("text_size", 0)),
+		func(i):
+			Game.settings.text_size = i
+			Game.apply_settings())
+	_stepper(vb, "set.tts", onoff, 1 if Game.settings.get("tts", false) else 0, func(i):
+		Game.settings.tts = i == 1
+		Game.speak(tr("set.tts_hello")))
+	_stepper(vb, "set.autorun", onoff, 1 if Game.settings.get("autorun", true) else 0, func(i): Game.settings.autorun = i == 1)
+	_stepper(vb, "set.blur", onoff, 1 if Game.settings.get("blur", true) else 0, func(i): Game.settings.blur = i == 1)
+	_stepper(vb, "set.flash", onoff, 1 if Game.settings.get("flash", true) else 0, func(i): Game.settings.flash = i == 1)
+	_stepper(vb, "set.rumble", onoff, 1 if Game.settings.get("rumble", true) else 0, func(i):
+		Game.settings.rumble = i == 1
+		Game.rumble())
+	_button(vb, tr("menu.back"), func():
+		Game.save_settings()
+		back())
+	_focus_first(vb)
+
+## For grown-ups: day length, cheap mode, session limit, PIN, play time.
+func show_parents() -> void:
+	var vb := _page(tr("set.page_parents"))
+	var onoff := [tr("set.off"), tr("set.on")]
+	_stepper(vb, "set.day_length", Game.DAY_CHOICES.map(func(m): return tr("set.minutes") % m),
+		max(Game.DAY_CHOICES.find(int(Game.settings.day_minutes)), 0),
+		func(i): Game.settings.day_minutes = Game.DAY_CHOICES[i])
+	var limits := [0, 1, 2, 3, 5]
+	_stepper(vb, "set.session_days", limits.map(func(n): return tr("set.no_limit") if n == 0 else (tr("set.days") % n)),
+		max(limits.find(int(Game.settings.get("session_days", 0))), 0),
+		func(i): Game.settings.session_days = limits[i])
+	_stepper(vb, "set.cheap", onoff, 1 if Game.settings.get("cheap", false) else 0, func(i): Game.settings.cheap = i == 1)
+	_stepper(vb, "set.lock_all", onoff, 1 if Game.settings.get("lock_all", false) else 0, func(i): Game.settings.lock_all = i == 1)
+	var pin_b := _button(vb, tr("set.pin_set") if Game.settings.get("pin", "") == "" else tr("set.pin_change"), func():
+		show_pin_pad(tr("set.pin_new"), func(p):
+			Game.settings.pin = p
+			Game.save_settings()
+			back()))
+	if Game.settings.get("pin", "") != "":
+		_button(vb, tr("set.pin_remove"), func():
+			Game.settings.pin = ""
+			Game.save_settings()
+			back()
+			show_parents())
+	var info := Label.new()
+	var d := Game.day if is_instance_valid(get_tree().get_first_node_in_group("world")) else 0
+	info.text = tr("set.stats") % [Game.minutes_today(), int(float(Game.settings.play_total_s) / 3600.0),
+		int(fmod(float(Game.settings.play_total_s) / 60.0, 60.0)), d]
+	info.add_theme_font_size_override("font_size", 24)
+	info.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vb.add_child(info)
+	_button(vb, tr("menu.back"), func():
+		Game.save_settings()
+		back())
+	_focus_first(vb)
+
+# ---------------------------------------------------------------- parents' gate
+
+## Run `on_ok` once a grown-up proves it: the PIN if there is one, else a
+## multiplication only a grown-up (or a big kid) knows.
+func parent_gate(on_ok: Callable) -> void:
+	if Game.settings.get("pin", "") != "":
+		var check := func(p: String):
+			if p == Game.settings.pin:
+				back()
+				on_ok.call()
+			else:
+				Sfx.play("nope")
+		show_pin_pad(tr("gate.pin"), check, true)
+	else:
+		_math_gate(on_ok)
+
+func _math_gate(on_ok: Callable) -> void:
+	var a := randi_range(6, 9)
+	var b := randi_range(6, 9)
+	var vb := _page(tr("gate.title"))
+	var q := Label.new()
+	q.text = tr("gate.question") % [a, b]
+	q.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	q.add_theme_font_size_override("font_size", 40)
+	vb.add_child(q)
+	var answers := [a * b, a * b + randi_range(1, 4) * (1 if randf() < 0.5 else -1), a * (b + 1)]
+	answers.shuffle()
+	var hb := HBoxContainer.new()
+	hb.alignment = BoxContainer.ALIGNMENT_CENTER
+	hb.add_theme_constant_override("separation", 14)
+	vb.add_child(hb)
+	for n in answers:
+		var v: int = n
+		var bt := Button.new()
+		bt.text = str(v)
+		bt.custom_minimum_size = Vector2(140, 70)
+		bt.pressed.connect(func():
+			if v == a * b:
+				back()
+				on_ok.call()
+			else:
+				Sfx.play("nope")
+				back())
+		hb.add_child(bt)
+	_button(vb, tr("menu.back"), back)
+	hb.get_child(0).grab_focus.call_deferred()
+
+## A 4-digit pad that works with arrows/joypad, the number keys or the mouse.
+## `keep_open` leaves the pad up after a wrong code.
+func show_pin_pad(title: String, on_done: Callable, keep_open := false) -> void:
+	var vb := _page(title)
+	var shown := Label.new()
+	shown.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	shown.add_theme_font_size_override("font_size", 52)
+	vb.add_child(shown)
+	var st := {"code": ""}
+	var refresh := func():
+		shown.text = " ".join(range(4).map(func(i): return "●" if i < st.code.length() else "○"))
+	refresh.call()
+	var press := func(k: String):
+		if k == "⌫":
+			st.code = st.code.substr(0, max(st.code.length() - 1, 0))
+		elif st.code.length() < 4:
+			st.code += k
+		refresh.call()
+		Sfx.play("ui_move")
+		if st.code.length() == 4:
+			var c: String = st.code
+			st.code = ""
+			refresh.call()
+			on_done.call(c)
+	var grid := GridContainer.new()
+	grid.columns = 3
+	grid.add_theme_constant_override("h_separation", 10)
+	grid.add_theme_constant_override("v_separation", 10)
+	var center := CenterContainer.new()
+	center.add_child(grid)
+	vb.add_child(center)
+	for k in ["1", "2", "3", "4", "5", "6", "7", "8", "9", "⌫", "0", ""]:
+		var bt := Button.new()
+		bt.text = k
+		bt.custom_minimum_size = Vector2(96, 72)
+		if k == "":
+			bt.disabled = true
+			bt.modulate.a = 0.0
+		else:
+			var kk: String = k
+			bt.pressed.connect(func(): press.call(kk))
+		grid.add_child(bt)
+	# number keys on the keyboard
+	var catcher := Control.new()
+	catcher.set_anchors_preset(Control.PRESET_FULL_RECT)
+	catcher.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vb.add_child(catcher)
+	vb.set_meta("pin_press", press)
+	if title == tr("gate.pin"):
+		_button(vb, tr("gate.forgot"), func():
+			back()
+			_math_gate(func():
+				Game.settings.pin = ""
+				Game.save_settings()
+				show_pin_pad(tr("set.pin_new"), func(p):
+					Game.settings.pin = p
+					Game.save_settings()
+					back())))
+	_button(vb, tr("menu.back"), back)
+	grid.get_child(0).grab_focus.call_deferred()
+
+func _input(e: InputEvent) -> void:
+	# digits typed while a PIN pad is open
+	if _stack.is_empty() or not (e is InputEventKey) or not e.pressed:
+		return
+	var vb := _stack[-1].find_children("*", "VBoxContainer", true, false)
+	if vb.is_empty() or not vb[0].has_meta("pin_press"):
+		return
+	var k: int = e.physical_keycode
+	var press: Callable = vb[0].get_meta("pin_press")
+	if k >= KEY_0 and k <= KEY_9:
+		press.call(str(k - KEY_0))
+		get_viewport().set_input_as_handled()
+	elif k >= KEY_KP_0 and k <= KEY_KP_9:
+		press.call(str(k - KEY_KP_0))
+		get_viewport().set_input_as_handled()
+	elif k == KEY_BACKSPACE:
+		press.call("⌫")
+		get_viewport().set_input_as_handled()
+
+# ---------------------------------------------------------------- rest time
+
+## The session's days are used up: a calm "time to rest" card. Going on
+## needs a grown-up.
+func show_rest(on_continue: Callable) -> void:
+	get_tree().paused = true
+	var vb := _page(tr("rest.title"))
+	var l := Label.new()
+	l.text = tr("rest.text")
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	l.custom_minimum_size = Vector2(600, 0)
+	vb.add_child(l)
+	Game.speak(tr("rest.title") + ". " + tr("rest.text"))
+	_button(vb, tr("rest.quit"), func():
+		close_all()
+		get_tree().paused = false
+		get_tree().change_scene_to_file("res://scenes/title.tscn"))
+	_button(vb, tr("rest.parents"), func():
+		parent_gate(func():
+			close_all()
+			get_tree().paused = false
+			on_continue.call()))
 	_focus_first(vb)
 
 func _nearest(arr: Array, v: float) -> int:
@@ -299,6 +515,8 @@ func shop_catalog(tab: String, world: Node) -> Array:
 			var kind: String = {"food": "food", "seeds": "seed", "tools": "tool"}[tab]
 			for id in Content.items:
 				var d: Dictionary = Content.items[id]
+				if tab == "tools" and d.get("kind", "") == "upgrade" and not Game.flags.get(d.get("flag", id), false):
+					out.append({"id": id, "price": Game.price(int(d.price)), "name": Content.item_name(id), "icon": "item:" + id, "upgrade": true})
 				if d.get("kind", "") == kind and int(d.get("price", 0)) > 0:
 					out.append({"id": id, "price": Game.price(int(d.price)), "name": Content.item_name(id), "icon": "item:" + id})
 		"eggs":
@@ -311,7 +529,7 @@ func shop_catalog(tab: String, world: Node) -> Array:
 				var d: Dictionary = Content.props[id]
 				if int(d.get("price", 0)) > 0 and not d.get("fixed", false):
 					out.append({"id": "box_" + id, "price": Game.price(int(d.price)), "name": tr("prop." + id), "icon": "item:box_" + id})
-	out.sort_custom(func(a, b): return a.price < b.price)
+	out.sort_custom(func(a, b): return [not a.get("upgrade", false), a.price] < [not b.get("upgrade", false), b.price])
 	return out
 
 func show_shop(world: Node, player: Node, tab := 0) -> void:
@@ -359,6 +577,14 @@ func show_shop(world: Node, player: Node, tab := 0) -> void:
 				world.toast(tr("toast.no_coins"), "coin")
 				return
 			Game.add_coins(-it.price)
+			if it.get("upgrade", false):
+				Game.flags[Content.items[it.id].get("flag", it.id)] = true
+				player.fit_pockets()
+				Sfx.play("mission")
+				world.toast(tr("toast.backpack"), "place")
+				back()
+				show_shop(world, player, 2)
+				return
 			if not player.give_item(it.id):
 				world.spawn_item(it.id, player.front_point(0.9))
 				world.toast(tr("toast.on_ground"), "place")
@@ -478,6 +704,7 @@ func show_dialog(speaker: String, lines: Array, choices: Array, on_close: Callab
 		for c in row.get_children():
 			c.queue_free()
 		text.text = lines[state.i]
+		Game.speak(speaker + ". " + text.text)
 		text.visible_ratio = 0.0
 		var tw := create_tween()
 		tw.tween_property(text, "visible_ratio", 1.0, clampf(text.text.length() * 0.02, 0.3, 1.6))
@@ -730,3 +957,8 @@ func show_wardrobe(player: Node) -> void:
 		world.cam_override = 0.0
 		back())
 	_focus_first(vb)
+
+## dev: --open=dev_shop_tools
+func dev_shop_tools() -> void:
+	var w := get_tree().get_first_node_in_group("world")
+	show_shop(w, w.players[0], 2)

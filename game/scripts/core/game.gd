@@ -25,7 +25,26 @@ var settings := {
 	"text_scale": 1.0,
 	"camera": 1,          # index into CAMERA_ZOOMS
 	"cheap": false,       # "everything costs a tenth": little kids get almost everything
+	# parents
+	"pin": "",            # 4 digits; "" = no PIN (a grown-up question guards instead)
+	"lock_all": false,    # true: the whole Settings menu asks for the PIN
+	"session_days": 0,    # game days per session before "time to rest" (0 = no limit)
+	# accessibility
+	"text_size": 0,       # index into TEXT_SCALES
+	"tts": false,         # read prompts, messages and dialogs aloud
+	"blur": true,         # the miniature tilt-shift blur
+	"autorun": true,      # holding a direction runs after a moment
+	"flash": true,        # the camera's white flash
+	"rumble": true,       # joypad vibration on happy moments
+	# real play time, across all farms (parents' panel)
+	"play_date": "",
+	"play_today_s": 0.0,
+	"play_total_s": 0.0,
 }
+
+const TEXT_SCALES := [1.0, 1.15, 1.3]
+var session_days := 0      # days finished since the game was opened
+var _settings_save_t := 0.0
 
 ## Camera distance presets (Settings > Camera): very close .. far
 const CAMERA_ZOOMS := [0.58, 0.75, 1.0, 1.3]
@@ -54,6 +73,7 @@ func _process(dt: float) -> void:
 	if not running:
 		return
 	played_today_s += dt
+	_count_real_time(dt)
 	var rate := (DAY_END - DAY_START) / (float(settings.day_minutes) * 60.0)
 	if Dev.arg("fast") != "":
 		rate *= float(Dev.arg("fast"))
@@ -98,6 +118,7 @@ func count(key: String, n := 1) -> void:
 	today[key] = today.get(key, 0) + n
 
 func start_new_day() -> void:
+	session_days += 1
 	day += 1
 	hour = DAY_START
 	today = {}
@@ -107,6 +128,41 @@ func start_new_day() -> void:
 	day_started.emit(day)
 
 # ---------------------------------------------------------------- settings
+
+## Real minutes played per calendar day and in total (all farms), for the
+## parents' panel. Saved every half minute.
+func _count_real_time(dt: float) -> void:
+	var today_s := Time.get_date_string_from_system()
+	if settings.play_date != today_s:
+		settings.play_date = today_s
+		settings.play_today_s = 0.0
+	settings.play_today_s = float(settings.play_today_s) + dt
+	settings.play_total_s = float(settings.play_total_s) + dt
+	_settings_save_t += dt
+	if _settings_save_t > 30.0:
+		_settings_save_t = 0.0
+		save_settings()
+
+func minutes_today() -> int:
+	if settings.play_date != Time.get_date_string_from_system():
+		return 0
+	return int(float(settings.play_today_s) / 60.0)
+
+## Say something with the system's voice (Settings: read aloud).
+func speak(text: String, interrupt := true) -> void:
+	if not settings.get("tts", false) or text.strip_edges() == "":
+		return
+	var lang := TranslationServer.get_locale().substr(0, 2)
+	var voices := DisplayServer.tts_get_voices_for_language(lang)
+	if voices.is_empty():
+		return
+	DisplayServer.tts_speak(text, voices[0], 70, 1.0, 1.0, 0, interrupt)
+
+## A short joypad buzz for happy moments.
+func rumble(strength := 0.4, seconds := 0.15) -> void:
+	if settings.get("rumble", true):
+		for j in Input.get_connected_joypads():
+			Input.start_joy_vibration(j, strength * 0.6, strength, seconds)
 
 func load_settings() -> void:
 	var f := FileAccess.open("user://settings.json", FileAccess.READ)
@@ -129,6 +185,7 @@ func apply_settings() -> void:
 		loc = Lang.best_default()
 	Lang.set_language(loc)
 	DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN if settings.fullscreen else DisplayServer.WINDOW_MODE_WINDOWED)
+	get_tree().root.content_scale_factor = TEXT_SCALES[clampi(int(settings.get("text_size", 0)), 0, TEXT_SCALES.size() - 1)]
 	var bus := AudioServer.get_bus_index("Music")
 	if bus >= 0:
 		AudioServer.set_bus_volume_db(bus, linear_to_db(settings.music))

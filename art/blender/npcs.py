@@ -21,7 +21,7 @@ How it works
   open mouth, brows, nose, ears), scaled by the head size.
 
 Characters (rest height to the top of hair/hat; materials = palette roles)
-  npc_nat     Doctora Nat     1.52 m  curly ponytail, round glasses, lab coat   8976 tris, 13 mats
+  npc_nat     Doctora Nat     1.52 m  fair skin, green eyes, dark-blond curly ponytail, round glasses, lab coat   8976 tris, 13 mats
   npc_juampi  Tio Juampi      1.61 m  backwards cap, beard, overalls, tools     8988 tris, 14 mats
   npc_juan    Abuelo Juan     1.44 m  flat cap, moustache, cardigan, stooped    8786 tris, 13 mats
   npc_kid_a   visiting kid    0.99 m  pigtails, yellow raincoat, rain boots     7922 tris, 11 mats
@@ -1016,8 +1016,8 @@ def button(mb, bvh, x, z, r, key, off=0.004, side=-1):
 
 # ---------------------------------------------------------------- Doctora Nat
 
-NAT_COL = dict(skin='#a86f4c', hair='#6e4632', eye_white='#ffffff', pupil='#241614', mouth='#7c2a2c',
-               blush='#e8786c', coat='#f5f7fa', shirt='#21b3a4', pants='#cdb27a', shoes='#8b5a34',
+NAT_COL = dict(skin='#f6d3bd', hair='#a8834a', eye_white='#ffffff', pupil='#2f7a4c', mouth='#b0484a',
+               blush='#f2928a', coat='#f5f7fa', shirt='#21b3a4', pants='#cdb27a', shoes='#8b5a34',
                shoe_sole='#4a3326', glasses='#5a2f3f', emblem='#f4ead2')
 NAT = Body(kH=1.10, kL=2.15, kT=1.60, kW=1.36, kHip=1.45, kD=1.38, kA=1.80, kHand=1.25, kR=1.28,
            foot=(1.28, 1.36, 1.22), low=1.25, gaits=ADULT_GAITS)

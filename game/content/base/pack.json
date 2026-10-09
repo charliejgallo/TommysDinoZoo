@@ -47,7 +47,8 @@
     "seed_berry":   {"kind": "seed", "plant": "berry", "model": "item_seed_packet", "price": 8},
     "seed_pumpkin": {"kind": "seed", "plant": "pumpkin", "model": "item_seed_packet", "price": 10},
     "seed_carrot":  {"kind": "seed", "plant": "carrot", "model": "item_seed_packet", "price": 6},
-    "poop":         {"kind": "trash", "model": "item_poop", "needs_tool": "shovel"}
+    "poop":         {"kind": "trash", "model": "item_poop", "needs_tool": "shovel"},
+    "backpack":     {"kind": "upgrade", "model": "icon_backpack", "price": 120, "flag": "backpack"}
   },
   "plants": {
     "fern":    {"days": 1, "yield": "fern", "count": 2, "model": "prop_fern_plant"},
