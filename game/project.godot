@@ -4,9 +4,16 @@ config_version=5
 [application]
 
 config/name="Tommy's Dino Zoo"
+config/version="1.0.0"
 run/main_scene="res://scenes/title.tscn"
 config/features=PackedStringArray("4.7", "Forward Plus")
 config/icon="res://icon.png"
+boot_splash/bg_color=Color(1, 0.968627, 0.901961, 1)
+boot_splash/show_image=true
+boot_splash/image="res://splash.png"
+boot_splash/fullsize=false
+boot_splash/use_filter=true
+boot_splash/minimum_display_time=1200
 
 [autoload]
 
@@ -28,6 +35,8 @@ window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 
 [rendering]
+
+environment/defaults/default_clear_color=Color(1, 0.968627, 0.901961, 1)
 
 textures/vram_compression/import_etc2_astc=true
 

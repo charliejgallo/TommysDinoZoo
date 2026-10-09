@@ -1,5 +1,6 @@
 name: build
 
+# Every push builds both zips; a tag v* also publishes a release with them.
 on:
   push:
     branches: [main]
@@ -9,6 +10,9 @@ on:
 
 env:
   GODOT_VERSION: 4.7.2
+
+permissions:
+  contents: write
 
 jobs:
   export:
@@ -28,22 +32,22 @@ jobs:
       - name: Export macOS
         run: |
           mkdir -p dist
-          godot --headless --path game --export-release "macOS" "../dist/TommysDinoZoo-mac.zip"
+          godot --headless --path game --export-release "macOS" "../dist/TommysDinoZoo-macOS.zip"
       - name: Export Windows
         run: |
           mkdir -p dist/windows
           godot --headless --path game --export-release "Windows" "../dist/windows/TommysDinoZoo.exe"
-          cd dist && zip -qr TommysDinoZoo-windows.zip windows
+          cp LICENSE README.md dist/windows/ && cd dist/windows && zip -qr ../TommysDinoZoo-Windows.zip .
       - uses: actions/upload-artifact@v4
         with:
           name: builds
           path: |
-            dist/TommysDinoZoo-mac.zip
-            dist/TommysDinoZoo-windows.zip
+            dist/TommysDinoZoo-macOS.zip
+            dist/TommysDinoZoo-Windows.zip
       - name: Release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            dist/TommysDinoZoo-mac.zip
-            dist/TommysDinoZoo-windows.zip
+            dist/TommysDinoZoo-macOS.zip
+            dist/TommysDinoZoo-Windows.zip

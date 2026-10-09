@@ -10,6 +10,7 @@ short attacks only where a tick or click needs them, peaks at -6 dBFS
     WAV=1 ...                                  # also dump WAVs to the scratch dir
 """
 import os
+import tempfile
 import sys
 
 import numpy as np
@@ -20,8 +21,7 @@ import synth as S  # noqa: E402
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 OUT = os.path.join(ROOT, 'game', 'assets', 'sfx')
-SCRATCH = os.environ.get('AUDIO_SCRATCH', '/private/tmp/claude-501/-Users-charlie-Dropbox-ClaudeCode/'
-                         'bea4eb56-79a2-4f4b-8313-37463248a60c/scratchpad/audio')
+SCRATCH = os.environ.get('AUDIO_SCRATCH', os.path.join(tempfile.gettempdir(), 'tdz_audio'))
 
 # ---------------------------------------------------------------- helpers
 
