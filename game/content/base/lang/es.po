@@ -937,3 +937,6 @@ msgstr "Mochila (un bolsillo más)"
 msgid "toast.backpack"
 msgstr "¡Mochila nueva! Ahora tenés 4 bolsillos"
 
+msgid "loading.hint"
+msgstr "Los dinos se están despertando..."
+

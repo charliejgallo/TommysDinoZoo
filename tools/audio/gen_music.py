@@ -14,6 +14,7 @@ The hook (title, bars 3-4: C A C F | E D C A in F major) comes back in the
 night lullaby, the summary phrase and the 'mission' jingle.
 """
 import os
+import tempfile
 import sys
 
 import numpy as np
@@ -25,8 +26,7 @@ from synth import (Chord, Song, bass, ep, flute, fm_bell, glock, hz, kalimba,  #
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 OUT = os.path.join(ROOT, 'game', 'assets', 'music')
-SCRATCH = os.environ.get('AUDIO_SCRATCH', '/private/tmp/claude-501/-Users-charlie-Dropbox-ClaudeCode/'
-                         'bea4eb56-79a2-4f4b-8313-37463248a60c/scratchpad/audio')
+SCRATCH = os.environ.get('AUDIO_SCRATCH', os.path.join(tempfile.gettempdir(), 'tdz_audio'))
 TARGET_LUFS = -18.0
 
 INST = {

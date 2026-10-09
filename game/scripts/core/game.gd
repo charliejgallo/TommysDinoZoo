@@ -165,7 +165,7 @@ func rumble(strength := 0.4, seconds := 0.15) -> void:
 			Input.start_joy_vibration(j, strength * 0.6, strength, seconds)
 
 func load_settings() -> void:
-	var f := FileAccess.open("user://settings.json", FileAccess.READ)
+	var f := FileAccess.open(data_dir().path_join("settings.json"), FileAccess.READ)
 	if f:
 		var d = JSON.parse_string(f.get_as_text())
 		if typeof(d) == TYPE_DICTIONARY:
@@ -174,7 +174,8 @@ func load_settings() -> void:
 		settings.day_minutes = int(Dev.arg("day"))
 
 func save_settings() -> void:
-	var f := FileAccess.open("user://settings.json", FileAccess.WRITE)
+	DirAccess.make_dir_recursive_absolute(data_dir())
+	var f := FileAccess.open(data_dir().path_join("settings.json"), FileAccess.WRITE)
 	f.store_string(JSON.stringify(settings, "  "))
 
 func apply_settings() -> void:
@@ -195,8 +196,11 @@ func apply_settings() -> void:
 
 # ---------------------------------------------------------------- saves
 
+func data_dir() -> String:
+	return "user://dev" if Dev.is_dev() else "user://"
+
 func slot_path(n: int) -> String:
-	return "user://saves/slot_%d.json" % n
+	return data_dir().path_join("saves/slot_%d.json" % n)
 
 func slot_info(n: int) -> Dictionary:
 	var f := FileAccess.open(slot_path(n), FileAccess.READ)
@@ -209,7 +213,7 @@ func slot_info(n: int) -> Dictionary:
 		"dinos": d.get("world", {}).get("dinos", []).size()}
 
 func save_game() -> void:
-	DirAccess.make_dir_recursive_absolute("user://saves")
+	DirAccess.make_dir_recursive_absolute(data_dir().path_join("saves"))
 	var d := {
 		"version": SAVE_VERSION, "day": day, "hour": hour, "coins": coins,
 		"stats": stats, "flags": flags, "farm_name": flags.get("farm_name", ""),

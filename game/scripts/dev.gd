@@ -31,6 +31,15 @@ func _ready() -> void:
 			_step_t = 1.0   # let the world settle first
 	process_mode = Node.PROCESS_MODE_ALWAYS
 
+## True when the game runs under developer switches (tests, screenshots):
+## saves and settings then go to user://dev/ so a real farm is never touched.
+func is_dev() -> bool:
+	for a in OS.get_cmdline_user_args():
+		for k in ["--shot", "--keys", "--state", "--new", "--scene", "--open", "--trace"]:
+			if a.begins_with(k):
+				return true
+	return false
+
 func arg(name: String, def := "") -> String:
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--" + name + "="):

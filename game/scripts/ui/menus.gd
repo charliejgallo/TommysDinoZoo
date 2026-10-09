@@ -139,7 +139,7 @@ func _start(slot: int, fresh: bool) -> void:
 	Game.slot = slot
 	Game.flags["_fresh"] = fresh
 	close_all()
-	get_tree().change_scene_to_file("res://scenes/main.tscn")
+	get_tree().change_scene_to_file("res://scenes/loading.tscn")
 
 # ---------------------------------------------------------------- pause
 
