@@ -112,11 +112,18 @@ func _ready() -> void:
 	if Dev.arg("at") != "":
 		var a := Dev.arg("at").split(",")
 		p.global_position = Vector3(float(a[0]), 0, float(a[1]))
+	if Dev.arg("coins") != "":
+		Game.coins = int(Dev.arg("coins"))
 	if Dev.arg("hour") != "":
 		Game.hour = float(Dev.arg("hour"))
 	_snap_camera()
 	Game.running = true
 	_update_daylight()
+	if Dev.arg("open") != "":
+		# dev: open a menu page right away (screenshots): --open=show_parents
+		await get_tree().create_timer(0.5).timeout
+		get_tree().paused = true
+		menus.call(Dev.arg("open"))
 
 func _child(n: String) -> Node3D:
 	var c := Node3D.new()
@@ -656,6 +663,9 @@ func _update_camera(dt: float) -> void:
 	if _cam_attr:
 		# keep the miniature blur around Tommy whatever the distance
 		var dist := Stage.CAM_DIST * cam_zoom
+		var blur: bool = Game.settings.get("blur", true)
+		_cam_attr.dof_blur_near_enabled = blur
+		_cam_attr.dof_blur_far_enabled = blur
 		_cam_attr.dof_blur_near_distance = dist * 0.62
 		_cam_attr.dof_blur_near_transition = dist * 0.22
 		_cam_attr.dof_blur_far_distance = dist * 1.45
@@ -691,6 +701,7 @@ func _update_daylight() -> void:
 # ---------------------------------------------------------------- effects
 
 func fx_hearts(at: Vector3, n := 3) -> void:
+	Game.rumble(0.25, 0.12)
 	for i in n:
 		var s := Sprite3D.new()
 		s.texture = Icons.get_icon("heart")
@@ -746,7 +757,7 @@ func fx_text(at: Vector3, key: String) -> void:
 	tw.tween_callback(l.queue_free)
 
 func fx_flash() -> void:
-	if hud:
+	if hud and Game.settings.get("flash", true):
 		hud.flash()
 
 func toast(text: String, icon := "") -> void:
@@ -795,6 +806,14 @@ func _on_day_ended() -> void:
 	_music_mode = "summary"
 	hud.show_day_summary(summary)
 	await hud.summary_closed
+	# the parents' "days per session" limit: a calm stop card
+	var limit := int(Game.settings.get("session_days", 0))
+	if limit > 0 and Game.session_days + 1 >= limit:
+		var go_on := [false]
+		menus.show_rest(func(): go_on[0] = true)
+		while not go_on[0]:
+			await get_tree().process_frame
+		Game.session_days = -1   # a grown-up said "keep going": a fresh allowance
 	_sleeping = false
 	Game.start_new_day()
 	_morning()
@@ -832,6 +851,7 @@ func _close_day() -> Dictionary:
 					"pos": [at.x + k * 0.5, at.z + (k % 2) * 0.4], "habitat": hab})
 				nd.set_meta("unnamed", true)
 			Sfx.play("hatch")
+			Game.rumble(0.6, 0.3)
 			s.hatched.append([nd.dino_name, sp])
 		if p.def.get("plot", false) and p.state.get("crop", "") != "":
 			if int(p.state.get("watered", 0)) == Game.day:
@@ -974,9 +994,14 @@ func load_state(d: Dictionary) -> void:
 	spawn_npcs()
 	var ps: Array = d.get("players", [])
 	_ensure_missions.call_deferred()
+	for p in players:
+		p.slots.assign(["", "", ""])
+		p.active = 0
 	for i in min(ps.size(), players.size()):
 		players[i].slots.assign(ps[i].slots)
 		players[i].active = int(ps[i].active)
 		players[i]._refresh_held()
 		players[i].slots_changed.emit()
+	for p in players:
+		p.fit_pockets()
 	_build_fences()

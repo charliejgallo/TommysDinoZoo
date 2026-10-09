@@ -841,3 +841,99 @@ msgstr "Swap"
 msgid "set.cheap"
 msgstr "Everything cheap"
 
+msgid "set.page_game"
+msgstr "Game"
+
+msgid "set.page_access"
+msgstr "Accessibility"
+
+msgid "set.page_parents"
+msgstr "For parents"
+
+msgid "set.text_size"
+msgstr "Text size"
+
+msgid "set.size_0"
+msgstr "Normal"
+
+msgid "set.size_1"
+msgstr "Large"
+
+msgid "set.size_2"
+msgstr "Extra large"
+
+msgid "set.tts"
+msgstr "Read aloud"
+
+msgid "set.tts_hello"
+msgstr "I'll read the signs out loud"
+
+msgid "set.autorun"
+msgstr "Run automatically"
+
+msgid "set.blur"
+msgstr "Miniature blur"
+
+msgid "set.flash"
+msgstr "Camera flash"
+
+msgid "set.rumble"
+msgstr "Joypad rumble"
+
+msgid "set.session_days"
+msgstr "Days per session"
+
+msgid "set.no_limit"
+msgstr "No limit"
+
+msgid "set.days"
+msgstr "%d"
+
+msgid "set.lock_all"
+msgstr "Protect all settings"
+
+msgid "set.pin_set"
+msgstr "Set a PIN"
+
+msgid "set.pin_change"
+msgstr "Change the PIN"
+
+msgid "set.pin_remove"
+msgstr "Remove the PIN"
+
+msgid "set.pin_new"
+msgstr "New PIN (4 digits)"
+
+msgid "set.stats"
+msgstr "Today: %d min · Total: %d h %d min · Farm day: %d"
+
+msgid "gate.pin"
+msgstr "Parents' PIN"
+
+msgid "gate.forgot"
+msgstr "I forgot the PIN"
+
+msgid "gate.title"
+msgstr "Grown-ups only"
+
+msgid "gate.question"
+msgstr "What is %d × %d?"
+
+msgid "rest.title"
+msgstr "Time for a rest!"
+
+msgid "rest.text"
+msgstr "The dinos have gone to sleep. They'll be waiting to play again tomorrow."
+
+msgid "rest.quit"
+msgstr "Quit"
+
+msgid "rest.parents"
+msgstr "Keep playing (grown-ups)"
+
+msgid "item.backpack"
+msgstr "Backpack (one more pocket)"
+
+msgid "toast.backpack"
+msgstr "New backpack! You have 4 pockets now"
+

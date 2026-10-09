@@ -86,6 +86,15 @@ func apply_outfit() -> void:
 			own.set_shader_parameter("tint_mix", 0.0 if idx == 0 else 1.0)
 			mi.set_surface_override_material(i, own)
 
+## Pockets: three, four with the backpack from the shop.
+func pocket_count() -> int:
+	return 4 if Game.flags.get("backpack", false) else 3
+
+func fit_pockets() -> void:
+	while slots.size() < pocket_count():
+		slots.append("")
+	slots_changed.emit()
+
 func held() -> String:
 	return slots[active]
 
@@ -161,7 +170,7 @@ func _physics_process(dt: float) -> void:
 		_push_t = 0.0
 	var speed := 0.0
 	if mag > 0.05:
-		speed = RUN if _push_t > RUN_AFTER and not is_big(held()) else WALK * clamp(mag * 1.2, 0.5, 1.0)
+		speed = RUN if _push_t > RUN_AFTER and Game.settings.get("autorun", true) and not is_big(held()) else WALK * clamp(mag * 1.2, 0.5, 1.0)
 		var want := atan2(inp.x, inp.y)
 		_facing = lerp_angle(_facing, want, 1.0 - exp(-14.0 * dt))
 		model.rotation.y = _facing

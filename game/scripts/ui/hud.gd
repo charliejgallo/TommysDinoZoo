@@ -80,10 +80,11 @@ func _build_slots() -> void:
 	hb.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
 	hb.offset_top = -SLOT - 28
 	hb.offset_bottom = -28
-	hb.offset_left = -(SLOT * 3 + 28) / 2.0
-	hb.offset_right = (SLOT * 3 + 28) / 2.0
+	hb.offset_left = -(SLOT * 4 + 42) / 2.0
+	hb.offset_right = (SLOT * 4 + 42) / 2.0
+	hb.alignment = BoxContainer.ALIGNMENT_CENTER
 	_root.add_child(hb)
-	for i in 3:
+	for i in 4:
 		var p := Panel.new()
 		p.custom_minimum_size = Vector2(SLOT, SLOT)
 		p.pivot_offset = Vector2(SLOT, SLOT) / 2.0
@@ -187,7 +188,10 @@ func _process(_dt: float) -> void:
 func _refresh_slots() -> void:
 	if player == null:
 		return
-	for i in 3:
+	for i in slot_panels.size():
+		slot_panels[i].visible = i < player.slots.size()
+		if i >= player.slots.size():
+			continue
 		var active := i == player.active
 		var s := box(CREAM if active else Color(1, 0.97, 0.9, 0.82), GOLD.darkened(0.15) if active else BROWN.lightened(0.3), 24, 6 if active else 3)
 		slot_panels[i].add_theme_stylebox_override("panel", s)
@@ -204,6 +208,7 @@ func _on_target(info: Dictionary) -> void:
 		return
 	prompt.visible = true
 	prompt_label.text = tr("verb." + info.verb)
+	Game.speak(prompt_label.text)
 	prompt_key.text = "A" if Controls.using_joypad else "Z"
 	prompt_icon.texture = Icons.get_icon("verb_" + info.get("icon", info.verb))
 	prompt.modulate = Color(1, 1, 1, 0.6) if info.get("disabled", false) else Color.WHITE
@@ -225,6 +230,7 @@ func _place_prompt() -> void:
 
 func toast(text: String, icon := "") -> void:
 	toast_label.text = text
+	Game.speak(text, false)
 	toast_icon.texture = Icons.get_icon(icon) if icon != "" else null
 	toast_icon.visible = icon != ""
 	toast_box.reset_size()
@@ -273,6 +279,7 @@ func show_day_summary(s: Dictionary) -> void:
 	var best := _best_moment(s.today)
 	if best != "":
 		vb.add_child(_line("sparkle", best))
+	Game.speak(tr("summary.title") % s.day + ". " + tr("summary.happy") % [s.happy, s.dinos] + ". " + tr("summary.bye"))
 	var bye := label(tr("summary.bye"), 40, Color("#e0703c"))
 	bye.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vb.add_child(bye)

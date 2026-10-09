@@ -368,6 +368,19 @@ def talk():
     return [b, t] + dots
 
 
+@icon
+def backpack():
+    """the shop's backpack: one more pocket"""
+    body = C.mat('paint_red', '#ef5a4c')
+    flap = C.mat('paint_yellow', '#ffcf4a')
+    strap = C.mat('wood_dark', '#7a5236')
+    return [C.box('bag', body, (0, 0, 0.24), (0.36, 0.2, 0.42), bevel=0.09),
+            C.box('pocket', flap, (0, -0.11, 0.16), (0.24, 0.06, 0.16), bevel=0.04),
+            C.box('flap', flap, (0, -0.02, 0.42), (0.37, 0.22, 0.12), bevel=0.05),
+            C.tube('handle', strap, [(-0.07, 0, 0.45), (0, 0, 0.52), (0.07, 0, 0.45)], [0.018, 0.018, 0.018], seg=8),
+            C.ellipsoid('star', C.mat('white', '#ffffff'), (0, -0.145, 0.17), (0.04, 0.01, 0.04))]
+
+
 def build(name):
     C.reset()
     C._mats.clear()
